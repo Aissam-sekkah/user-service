@@ -1,0 +1,33 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: user-service
+
+# BASE DE DONNEES
+  datasource:
+    url: jdbc:postgresql://localhost:5432/userdb
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: secret
+
+# JPA Hibernate
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+# LOGGING
+logging:
+  level:
+    root: info
+    com.aissek.userservice: DEBUG
+    org.hibernate.sql: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
