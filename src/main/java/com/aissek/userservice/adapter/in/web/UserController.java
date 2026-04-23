@@ -4,6 +4,7 @@ import com.aissek.userservice.adapter.in.web.dto.UserRequest;
 import com.aissek.userservice.adapter.in.web.dto.UserResponse;
 import com.aissek.userservice.adapter.in.web.mapper.UserWebMapper;
 import com.aissek.userservice.domain.port.in.UserUseCase;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +30,7 @@ public class UserController {
      *  Create a new user
      */
     @PostMapping
-    public ResponseEntity<UserResponse> create(@RequestBody UserRequest request){
+    public ResponseEntity<UserResponse> create(@Valid @RequestBody UserRequest request){
         var user = userUseCase.createUser(request.name(), request.email());
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(user));
     }
@@ -58,7 +59,7 @@ public class UserController {
      * Update an existing User
      */
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponse> update(@PathVariable String id, @RequestBody UserRequest request){
+    public ResponseEntity<UserResponse> update(@PathVariable String id, @Valid @RequestBody UserRequest request){
         var user = userUseCase.updateUser(id, request.name(), request.email());
         return ResponseEntity.status(HttpStatus.OK).body(mapper.toResponse(user));
     }

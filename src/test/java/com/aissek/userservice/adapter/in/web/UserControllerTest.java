@@ -18,6 +18,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -78,7 +79,8 @@ class UserControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.name").value("Amal"))
-                .andExpect(jsonPath("$.email").value("amal@gmail.com"));
+                .andExpect(jsonPath("$.email").value("amal@gmail.com"))
+                .andExpect(jsonPath("$.createdAt").isNotEmpty());
         assertThat(userJpaRepository.existsByEmail("amal@gmail.com")).isTrue();
     }
 
@@ -88,7 +90,8 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(existingUser.getId()))
                 .andExpect(jsonPath("$.name").value("ali"))
-                .andExpect(jsonPath("$.email").value("ali@gmail.com"));
+                .andExpect(jsonPath("$.email").value("ali@gmail.com"))
+                .andExpect(jsonPath("$.createdAt").isNotEmpty());
     }
 
     @Test
@@ -99,6 +102,7 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[*].email").isArray())
+                .andExpect(jsonPath("$[*].createdAt").isArray())
                 .andExpect(jsonPath("$[*].email").value(org.hamcrest.Matchers.containsInAnyOrder("ali@gmail.com", "sara@gmail.com")));
     }
 
@@ -112,7 +116,8 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(existingUser.getId()))
                 .andExpect(jsonPath("$.name").value("Ali Updated"))
-                .andExpect(jsonPath("$.email").value("ali.updated@gmail.com"));
+                .andExpect(jsonPath("$.email").value("ali.updated@gmail.com"))
+                .andExpect(jsonPath("$.createdAt").isNotEmpty());
         assertThat(userJpaRepository.existsByEmail("ali.updated@gmail.com")).isTrue();
     }
 
@@ -121,6 +126,14 @@ class UserControllerTest {
         mockMvc.perform(delete(BASE_URL + "/" + existingUser.getId()))
                 .andExpect(status().isNoContent());
         assertThat(userJpaRepository.findById(existingUser.getId())).isEmpty();
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenDeletingUserDoesNotExist() throws Exception {
+        mockMvc.perform(delete(BASE_URL + "/missing-id"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("User not found : missing-id"))
+                .andExpect(jsonPath("$.status").value(404));
     }
 
     @Test
@@ -136,6 +149,42 @@ class UserControllerTest {
     }
 
     @Test
+    void shouldReturnBadRequestWhenCreatingWithInvalidEmail() throws Exception {
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"name":"Ali","email":"invalid-email"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(containsString("email: email must be a well-formed email address")))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenCreatingWithBlankName() throws Exception {
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"name":"   ","email":"ali@example.com"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(containsString("name: name must not be blank")))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenCreatingWithNullEmail() throws Exception {
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"name":"Ali","email":null}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(containsString("email: email must not be blank")))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
     void shouldReturnBadRequestWhenUpdatingWithInvalidEmail() throws Exception {
         mockMvc.perform(put(BASE_URL + "/" + existingUser.getId())
                         .contentType(APPLICATION_JSON)
@@ -143,8 +192,44 @@ class UserControllerTest {
                                 {"name":"Ali","email":"invalid-email"}
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("Email invalide"))
+                .andExpect(jsonPath("$.detail").value(containsString("email: email must be a well-formed email address")))
                 .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenUpdatingWithBlankName() throws Exception {
+        mockMvc.perform(put(BASE_URL + "/" + existingUser.getId())
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"name":"   ","email":"ali.updated@gmail.com"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(containsString("name: name must not be blank")))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenUpdatingWithNullName() throws Exception {
+        mockMvc.perform(put(BASE_URL + "/" + existingUser.getId())
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"name":null,"email":"ali.updated@gmail.com"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(containsString("name: name must not be blank")))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenUpdatingUserDoesNotExist() throws Exception {
+        mockMvc.perform(put(BASE_URL + "/missing-id")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"name":"Ali Updated","email":"ali.updated@gmail.com"}
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("User not found : missing-id"))
+                .andExpect(jsonPath("$.status").value(404));
     }
 
     @Test
