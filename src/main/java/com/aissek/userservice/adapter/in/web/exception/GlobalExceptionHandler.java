@@ -11,7 +11,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UserDomainService.UserEmailAlreadyExistsException.class)
     public ProblemDetail handleUserEmailExist(UserDomainService.UserEmailAlreadyExistsException exception){
-        // problemDetail.setTitle("Email already exist" + exception.getMessage());
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(UserDomainService.UserNotFoundException.class)
+    public ProblemDetail handleUserNotFound(UserDomainService.UserNotFoundException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ProblemDetail handleIllegalArgument(IllegalArgumentException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 }

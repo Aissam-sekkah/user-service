@@ -33,7 +33,7 @@ public class User {
 
     // regle métier encapsuler
     public void updateProfile(String name, String email){
-        if(name.isBlank() || name == null){
+        if(name == null || name.isBlank()){
             throw new IllegalArgumentException("Le nom ne peut pas etre vide");
         }
         if(!email.contains("@")){
