@@ -1,6 +1,5 @@
 package com.aissek.userservice.adapter.in.web.mapper;
 
-import com.aissek.userservice.adapter.in.web.dto.UserRequest;
 import com.aissek.userservice.adapter.in.web.dto.UserResponse;
 import com.aissek.userservice.domain.model.User;
 import org.springframework.stereotype.Component;

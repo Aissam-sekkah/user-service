@@ -4,9 +4,7 @@ import com.aissek.userservice.adapter.out.persistence.mapper.UserPersistenceMapp
 import com.aissek.userservice.adapter.out.persistence.repository.UserJpaRepository;
 import com.aissek.userservice.domain.model.User;
 import com.aissek.userservice.domain.port.out.UserRepositoryPort;
-import com.aissek.userservice.domain.service.UserDomainService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

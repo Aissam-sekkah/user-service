@@ -2,6 +2,7 @@ package com.aissek.userservice.domain.service;
 
 import com.aissek.userservice.domain.model.User;
 import com.aissek.userservice.domain.port.in.UserUseCase;
+import com.aissek.userservice.domain.port.out.PasswordHasherPort;
 import com.aissek.userservice.domain.port.out.UserRepositoryPort;
 
 import java.util.List;
@@ -13,18 +14,20 @@ import java.util.List;
 public class UserDomainService implements UserUseCase {
 
     private final UserRepositoryPort userRepository;
+    private final PasswordHasherPort passwordHasher;
 
-    public UserDomainService(UserRepositoryPort userRepository){
+    public UserDomainService(UserRepositoryPort userRepository, PasswordHasherPort passwordHasher){
         this.userRepository = userRepository;
+        this.passwordHasher = passwordHasher;
     }
 
     @Override
-    public User createUser(String name, String email) {
+    public User createUser(String name, String email, String password) {
         // Règle métier : Email unique
         if(userRepository.existByEmail(email))
             throw new UserEmailAlreadyExistsException("Email déjà utilisé : " + email);
 
-        User user = new User(name, email);
+        User user = new User(name, email, passwordHasher.hash(password));
         return userRepository.save(user);
     }
 
@@ -47,6 +50,17 @@ public class UserDomainService implements UserUseCase {
     }
 
     @Override
+    public void changePassword(String id, String currentPassword, String newPassword) {
+        User user = getUserById(id);
+        if (!passwordHasher.matches(currentPassword, user.getPasswordHash())) {
+            throw new InvalidPasswordException("Mot de passe actuel invalide");
+        }
+
+        user.changePassword(passwordHasher.hash(newPassword));
+        userRepository.save(user);
+    }
+
+    @Override
     public void deleteUser(String id) {
         getUserById(id);
         userRepository.deleteById(id);
@@ -60,6 +74,12 @@ public class UserDomainService implements UserUseCase {
 
     public static class UserNotFoundException extends RuntimeException {
         public UserNotFoundException(String message) {
+            super(message);
+        }
+    }
+
+    public static class InvalidPasswordException extends RuntimeException {
+        public InvalidPasswordException(String message) {
             super(message);
         }
     }
