@@ -7,7 +7,9 @@ import com.aissek.userservice.domain.model.User;
 import com.aissek.userservice.domain.port.out.PasswordHasherPort;
 import com.aissek.userservice.domain.port.out.UserRepositoryPort;
 import com.aissek.userservice.domain.service.UserDomainService;
+import org.flywaydb.core.Flyway;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -32,9 +34,14 @@ public class BeanConfig {
     }
 
     @Bean
-    CommandLineRunner initDatabase(UserJpaRepository repository, PasswordHasherPort passwordHasherPort) {
+    CommandLineRunner initDatabase(
+            UserJpaRepository repository,
+            PasswordHasherPort passwordHasherPort,
+            ObjectProvider<Flyway> flywayProvider
+    ) {
         UserPersistenceMapper mapper = new UserPersistenceMapper();
         return args -> {
+            flywayProvider.ifAvailable(Flyway::migrate);
             if (repository.count() == 0) {
                 repository.save(mapper.toEntity(new User("Admin", "admin@example.com", passwordHasherPort.hash("admin12345"))));
                 repository.save(mapper.toEntity(new User("Staff", "staff@example.com", passwordHasherPort.hash("staff12345"))));
