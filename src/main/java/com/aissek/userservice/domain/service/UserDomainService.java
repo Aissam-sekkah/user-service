@@ -31,7 +31,7 @@ public class UserDomainService implements UserUseCase {
     @Override
     public User getUserById(String id) {
         return userRepository.findById(id)
-                .orElseThrow(()-> new RuntimeException("User not found : " + id));
+                .orElseThrow(() -> new UserNotFoundException("User not found : " + id));
     }
 
     @Override
@@ -55,6 +55,12 @@ public class UserDomainService implements UserUseCase {
     public static class UserEmailAlreadyExistsException extends RuntimeException {
         public UserEmailAlreadyExistsException(String email) {
             super(email);
+        }
+    }
+
+    public static class UserNotFoundException extends RuntimeException {
+        public UserNotFoundException(String message) {
+            super(message);
         }
     }
 }

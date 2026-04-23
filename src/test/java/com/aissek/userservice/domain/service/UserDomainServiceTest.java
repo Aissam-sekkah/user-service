@@ -62,7 +62,7 @@ class UserDomainServiceTest {
         when(userRepository.existByEmail(anyString())).thenReturn(true);
         // Act && Assert
         assertThatThrownBy(() -> userDomainService.createUser(name, email))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(UserDomainService.UserEmailAlreadyExistsException.class)
                 .hasMessageContaining("Email déjà utilisé" );
     }
 }
