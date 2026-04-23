@@ -4,6 +4,9 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Request payload used to create a user with credentials.
+ */
 public record CreateUserRequest(
         @NotBlank(message = "name must not be blank")
         String name,

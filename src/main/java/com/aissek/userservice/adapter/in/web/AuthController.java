@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * HTTP entry point for authentication operations.
+ */
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
@@ -21,6 +24,9 @@ public class AuthController {
     private final UserUseCase userUseCase;
     private final UserWebMapper mapper;
 
+    /**
+     * Authenticates a user with email and password.
+     */
     @PostMapping("/login")
     public ResponseEntity<UserResponse> login(@Valid @RequestBody LoginRequest request) {
         var user = userUseCase.login(request.email(), request.password());
