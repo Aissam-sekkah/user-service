@@ -38,6 +38,18 @@ public class UserDomainService implements UserUseCase {
     }
 
     @Override
+    public User login(String email, String password) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AuthenticationFailedException("Email ou mot de passe invalide"));
+
+        if (!passwordHasher.matches(password, user.getPasswordHash())) {
+            throw new AuthenticationFailedException("Email ou mot de passe invalide");
+        }
+
+        return user;
+    }
+
+    @Override
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
@@ -80,6 +92,12 @@ public class UserDomainService implements UserUseCase {
 
     public static class InvalidPasswordException extends RuntimeException {
         public InvalidPasswordException(String message) {
+            super(message);
+        }
+    }
+
+    public static class AuthenticationFailedException extends RuntimeException {
+        public AuthenticationFailedException(String message) {
             super(message);
         }
     }
