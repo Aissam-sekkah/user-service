@@ -13,6 +13,7 @@ public interface UserRepositoryPort {
 
     User            save(User user);
     Optional<User>  findById(String id);
+    Optional<User>  findByEmail(String email);
     List<User>      findAll();
     boolean         existByEmail(String email);
     void            deleteById(String id);

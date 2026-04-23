@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
@@ -103,5 +104,40 @@ class UserDomainServiceTest {
         assertThatThrownBy(() -> userDomainService.changePassword("123", "wrong-password", "newPassword123"))
                 .isInstanceOf(UserDomainService.InvalidPasswordException.class)
                 .hasMessageContaining("Mot de passe actuel invalide");
+    }
+
+    @Test
+    @DisplayName("Test de login réussi")
+    void shouldLoginSuccessfully() {
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(passwordHasherPort.matches(password, passwordHash)).thenReturn(true);
+
+        User result = userDomainService.login(email, password);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getEmail()).isEqualTo(email);
+        verify(userRepository).findByEmail(email);
+        verify(passwordHasherPort).matches(password, passwordHash);
+    }
+
+    @Test
+    @DisplayName("Test de login avec email inconnu")
+    void shouldThrowWhenLoginEmailDoesNotExist() {
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userDomainService.login(email, password))
+                .isInstanceOf(UserDomainService.AuthenticationFailedException.class)
+                .hasMessageContaining("Email ou mot de passe invalide");
+    }
+
+    @Test
+    @DisplayName("Test de login avec mot de passe invalide")
+    void shouldThrowWhenLoginPasswordIsInvalid() {
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(passwordHasherPort.matches("wrong-password", passwordHash)).thenReturn(false);
+
+        assertThatThrownBy(() -> userDomainService.login(email, "wrong-password"))
+                .isInstanceOf(UserDomainService.AuthenticationFailedException.class)
+                .hasMessageContaining("Email ou mot de passe invalide");
     }
 }

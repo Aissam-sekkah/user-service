@@ -12,6 +12,7 @@ public interface UserUseCase {
 
     User        createUser(String name, String email, String password);
     User        getUserById(String id);
+    User        login(String email, String password);
     List<User>  getAllUsers();
     User        updateUser(String id, String name, String email);
     void        changePassword(String id, String currentPassword, String newPassword);

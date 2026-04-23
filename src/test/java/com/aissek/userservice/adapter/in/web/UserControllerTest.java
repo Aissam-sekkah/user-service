@@ -36,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UserControllerTest {
 
     private static final String BASE_URL = "/api/v1/users";
+    private static final String AUTH_BASE_URL = "/api/v1/auth";
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
@@ -95,6 +96,70 @@ class UserControllerTest {
         assertThat(savedEntity.getPasswordHash()).isNotBlank();
         assertThat(savedEntity.getPasswordHash()).isNotEqualTo("password123");
         assertThat(passwordEncoder.matches("password123", savedEntity.getPasswordHash())).isTrue();
+    }
+
+    @Test
+    void shouldLoginSuccessfully() throws Exception {
+        mockMvc.perform(post(AUTH_BASE_URL + "/login")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"email":"ali@gmail.com","password":"password123"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(existingUser.getId()))
+                .andExpect(jsonPath("$.name").value("ali"))
+                .andExpect(jsonPath("$.email").value("ali@gmail.com"))
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+    }
+
+    @Test
+    void shouldReturnUnauthorizedWhenLoginPasswordIsInvalid() throws Exception {
+        mockMvc.perform(post(AUTH_BASE_URL + "/login")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"email":"ali@gmail.com","password":"wrongPassword"}
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.detail").value("Email ou mot de passe invalide"))
+                .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
+    void shouldReturnUnauthorizedWhenLoginEmailDoesNotExist() throws Exception {
+        mockMvc.perform(post(AUTH_BASE_URL + "/login")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"email":"missing@gmail.com","password":"password123"}
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.detail").value("Email ou mot de passe invalide"))
+                .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenLoginEmailIsInvalid() throws Exception {
+        mockMvc.perform(post(AUTH_BASE_URL + "/login")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"email":"invalid-email","password":"password123"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(containsString("email: email must be a well-formed email address")))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenLoginPasswordIsBlank() throws Exception {
+        mockMvc.perform(post(AUTH_BASE_URL + "/login")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"email":"ali@gmail.com","password":"   "}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(containsString("password: password must not be blank")))
+                .andExpect(jsonPath("$.status").value(400));
     }
 
     @Test
@@ -281,6 +346,34 @@ class UserControllerTest {
         var savedEntity = userJpaRepository.findById(existingUser.getId()).orElseThrow();
         assertThat(passwordEncoder.matches("newPassword123", savedEntity.getPasswordHash())).isTrue();
         assertThat(passwordEncoder.matches("password123", savedEntity.getPasswordHash())).isFalse();
+    }
+
+    @Test
+    void shouldLoginWithNewPasswordOnlyAfterPasswordChange() throws Exception {
+        mockMvc.perform(put(BASE_URL + "/" + existingUser.getId() + "/password")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"password123","newPassword":"newPassword123"}
+                                """))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post(AUTH_BASE_URL + "/login")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"email":"ali@gmail.com","password":"password123"}
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.detail").value("Email ou mot de passe invalide"))
+                .andExpect(jsonPath("$.status").value(401));
+
+        mockMvc.perform(post(AUTH_BASE_URL + "/login")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"email":"ali@gmail.com","password":"newPassword123"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(existingUser.getId()))
+                .andExpect(jsonPath("$.email").value("ali@gmail.com"));
     }
 
     @Test
