@@ -18,7 +18,7 @@ import java.util.List;
  * ADAPTER ENTRANT : traduit HTTP -> domain.
  * Ne contient AUCUNE logique métier, uniquement de la traduction
  */
-
+@CrossOrigin(origins = "*") // À restreindre en production !
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor

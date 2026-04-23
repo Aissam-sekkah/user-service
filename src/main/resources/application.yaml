@@ -17,11 +17,18 @@ spring:
 # JPA Hibernate
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+  sql:
+    init:
+      mode: never
 
 # LOGGING
 logging:
