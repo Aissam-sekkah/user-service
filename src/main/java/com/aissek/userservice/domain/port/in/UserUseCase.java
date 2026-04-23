@@ -10,10 +10,11 @@ import java.util.List;
  */
 public interface UserUseCase {
 
-    User        createUser(String name, String email);
+    User        createUser(String name, String email, String password);
     User        getUserById(String id);
     List<User>  getAllUsers();
     User        updateUser(String id, String name, String email);
+    void        changePassword(String id, String currentPassword, String newPassword);
     void        deleteUser(String id);
 
 }

@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -60,13 +61,16 @@ class UserControllerTest {
     @Autowired
     private UserPersistenceAdapter adapter;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     private User existingUser;
 
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         userJpaRepository.deleteAll();
-        existingUser = adapter.save(new User("ali", "ali@gmail.com"));
+        existingUser = adapter.save(new User("ali", "ali@gmail.com", passwordEncoder.encode("password123")));
     }
 
     @Test
@@ -74,14 +78,23 @@ class UserControllerTest {
         mockMvc.perform(post(BASE_URL)
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"name":"Amal","email":"amal@gmail.com"}
+                                {"name":"Amal","email":"amal@gmail.com","password":"password123"}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.name").value("Amal"))
                 .andExpect(jsonPath("$.email").value("amal@gmail.com"))
-                .andExpect(jsonPath("$.createdAt").isNotEmpty());
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.passwordHash").doesNotExist());
         assertThat(userJpaRepository.existsByEmail("amal@gmail.com")).isTrue();
+        var savedEntity = userJpaRepository.findAll().stream()
+                .filter(user -> user.getEmail().equals("amal@gmail.com"))
+                .findFirst()
+                .orElseThrow();
+        assertThat(savedEntity.getPasswordHash()).isNotBlank();
+        assertThat(savedEntity.getPasswordHash()).isNotEqualTo("password123");
+        assertThat(passwordEncoder.matches("password123", savedEntity.getPasswordHash())).isTrue();
     }
 
     @Test
@@ -96,7 +109,7 @@ class UserControllerTest {
 
     @Test
     void shouldReturnAllUsers() throws Exception {
-        adapter.save(new User("Sara", "sara@gmail.com"));
+        adapter.save(new User("Sara", "sara@gmail.com", passwordEncoder.encode("password456")));
 
         mockMvc.perform(get(BASE_URL))
                 .andExpect(status().isOk())
@@ -141,7 +154,7 @@ class UserControllerTest {
         mockMvc.perform(post(BASE_URL)
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"name":"Amal","email":"ali@gmail.com"}
+                                {"name":"Amal","email":"ali@gmail.com","password":"password123"}
                                 """))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("Email déjà utilisé : ali@gmail.com"))
@@ -153,7 +166,7 @@ class UserControllerTest {
         mockMvc.perform(post(BASE_URL)
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"name":"Ali","email":"invalid-email"}
+                                {"name":"Ali","email":"invalid-email","password":"password123"}
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value(containsString("email: email must be a well-formed email address")))
@@ -165,7 +178,7 @@ class UserControllerTest {
         mockMvc.perform(post(BASE_URL)
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"name":"   ","email":"ali@example.com"}
+                                {"name":"   ","email":"ali@example.com","password":"password123"}
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value(containsString("name: name must not be blank")))
@@ -177,10 +190,34 @@ class UserControllerTest {
         mockMvc.perform(post(BASE_URL)
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"name":"Ali","email":null}
+                                {"name":"Ali","email":null,"password":"password123"}
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value(containsString("email: email must not be blank")))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenCreatingWithBlankPassword() throws Exception {
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"name":"Ali","email":"ali@example.com","password":"   "}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(containsString("password: password must not be blank")))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenCreatingWithShortPassword() throws Exception {
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"name":"Ali","email":"ali@example.com","password":"short"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(containsString("password: password must be at least 8 characters")))
                 .andExpect(jsonPath("$.status").value(400));
     }
 
@@ -226,6 +263,68 @@ class UserControllerTest {
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {"name":"Ali Updated","email":"ali.updated@gmail.com"}
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("User not found : missing-id"))
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void shouldChangePassword() throws Exception {
+        mockMvc.perform(put(BASE_URL + "/" + existingUser.getId() + "/password")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"password123","newPassword":"newPassword123"}
+                                """))
+                .andExpect(status().isNoContent());
+
+        var savedEntity = userJpaRepository.findById(existingUser.getId()).orElseThrow();
+        assertThat(passwordEncoder.matches("newPassword123", savedEntity.getPasswordHash())).isTrue();
+        assertThat(passwordEncoder.matches("password123", savedEntity.getPasswordHash())).isFalse();
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenCurrentPasswordIsInvalid() throws Exception {
+        mockMvc.perform(put(BASE_URL + "/" + existingUser.getId() + "/password")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"wrongPassword","newPassword":"newPassword123"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("Mot de passe actuel invalide"))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenNewPasswordIsTooShort() throws Exception {
+        mockMvc.perform(put(BASE_URL + "/" + existingUser.getId() + "/password")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"password123","newPassword":"short"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(containsString("newPassword: newPassword must be at least 8 characters")))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenCurrentPasswordIsBlank() throws Exception {
+        mockMvc.perform(put(BASE_URL + "/" + existingUser.getId() + "/password")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"   ","newPassword":"newPassword123"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(containsString("currentPassword: currentPassword must not be blank")))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenChangingPasswordForUnknownUser() throws Exception {
+        mockMvc.perform(put(BASE_URL + "/missing-id/password")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"password123","newPassword":"newPassword123"}
                                 """))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.detail").value("User not found : missing-id"))

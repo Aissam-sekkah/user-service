@@ -1,6 +1,8 @@
 package com.aissek.userservice.adapter.in.web;
 
-import com.aissek.userservice.adapter.in.web.dto.UserRequest;
+import com.aissek.userservice.adapter.in.web.dto.ChangePasswordRequest;
+import com.aissek.userservice.adapter.in.web.dto.CreateUserRequest;
+import com.aissek.userservice.adapter.in.web.dto.UpdateUserRequest;
 import com.aissek.userservice.adapter.in.web.dto.UserResponse;
 import com.aissek.userservice.adapter.in.web.mapper.UserWebMapper;
 import com.aissek.userservice.domain.port.in.UserUseCase;
@@ -30,8 +32,8 @@ public class UserController {
      *  Create a new user
      */
     @PostMapping
-    public ResponseEntity<UserResponse> create(@Valid @RequestBody UserRequest request){
-        var user = userUseCase.createUser(request.name(), request.email());
+    public ResponseEntity<UserResponse> create(@Valid @RequestBody CreateUserRequest request){
+        var user = userUseCase.createUser(request.name(), request.email(), request.password());
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(user));
     }
 
@@ -59,9 +61,19 @@ public class UserController {
      * Update an existing User
      */
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponse> update(@PathVariable String id, @Valid @RequestBody UserRequest request){
+    public ResponseEntity<UserResponse> update(@PathVariable String id, @Valid @RequestBody UpdateUserRequest request){
         var user = userUseCase.updateUser(id, request.name(), request.email());
         return ResponseEntity.status(HttpStatus.OK).body(mapper.toResponse(user));
+    }
+
+    /**
+     * PUT /api/v1/users/{id}/password
+     * Change the password of an existing user
+     */
+    @PutMapping("/{id}/password")
+    public ResponseEntity<Void> changePassword(@PathVariable String id, @Valid @RequestBody ChangePasswordRequest request) {
+        userUseCase.changePassword(id, request.currentPassword(), request.newPassword());
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     /**

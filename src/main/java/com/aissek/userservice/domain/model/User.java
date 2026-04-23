@@ -13,21 +13,24 @@ public class User {
     private final String id;
     private String name;
     private String email;
+    private String passwordHash;
     private final LocalDateTime createdAt;
 
     // Constructeur de création (Génère l'ID)
-    public User(String name, String email){
+    public User(String name, String email, String passwordHash){
         this.id = UUID.randomUUID().toString();
         this.createdAt = LocalDateTime.now();
         this.name = name;
         this.email = email;
+        this.passwordHash = validatePasswordHash(passwordHash);
     }
 
     // Constructeur de reconstitution depuis la bdd
-    public User(String id, String name, String email, LocalDateTime createdAt){
+    public User(String id, String name, String email, String passwordHash, LocalDateTime createdAt){
         this.id = id;
         this.name = name;
         this.email = email;
+        this.passwordHash = validatePasswordHash(passwordHash);
         this.createdAt = createdAt;
     }
 
@@ -41,6 +44,17 @@ public class User {
         }
         this.name = name;
         this.email = email;
+    }
+
+    public void changePassword(String passwordHash) {
+        this.passwordHash = validatePasswordHash(passwordHash);
+    }
+
+    private String validatePasswordHash(String passwordHash) {
+        if (passwordHash == null || passwordHash.isBlank()) {
+            throw new IllegalArgumentException("Le mot de passe hashé ne peut pas etre vide");
+        }
+        return passwordHash;
     }
 
 }
