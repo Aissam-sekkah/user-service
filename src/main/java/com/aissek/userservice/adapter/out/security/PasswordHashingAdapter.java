@@ -5,6 +5,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+/**
+ * Spring-based implementation of password hashing.
+ */
 @Component
 @RequiredArgsConstructor
 public class PasswordHashingAdapter implements PasswordHasherPort {
