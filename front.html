@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API | User Service</title>
+    <style>
+        /* --- Premium Minimalist CSS --- */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+        :root {
+            --primary: #111827;
+            --primary-hover: #374151;
+            --bg: #F9FAFB;
+            --card-bg: #FFFFFF;
+            --text-main: #111827;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --success: #10B981;
+            --error: #EF4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            width: 100%;
+            max-width: 400px; /* Largeur par défaut pour login/register */
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0,0,0,0.01);
+            transition: max-width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* On élargit le container quand on affiche le dashboard */
+        .container.dashboard-mode {
+            max-width: 650px;
+        }
+
+        h2 { margin-top: 0; font-weight: 600; font-size: 1.5rem; text-align: center; margin-bottom: 0.5rem; }
+        p.subtitle { text-align: center; color: var(--text-muted); font-size: 0.875rem; margin-bottom: 2rem; }
+
+        .form-group { margin-bottom: 1.25rem; }
+        label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; }
+        
+        input {
+            width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border);
+            border-radius: 8px; font-size: 1rem; font-family: inherit;
+            box-sizing: border-box; transition: border-color 0.2s;
+        }
+        input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.1); }
+
+        button {
+            width: 100%; padding: 0.875rem; background-color: var(--primary); color: white;
+            border: none; border-radius: 8px; font-size: 1rem; font-weight: 500;
+            cursor: pointer; transition: background-color 0.2s; font-family: inherit;
+        }
+        button:hover { background-color: var(--primary-hover); }
+
+        .toggle-link { text-align: center; margin-top: 1.5rem; font-size: 0.875rem; color: var(--text-muted); }
+        .toggle-link span { color: var(--primary); font-weight: 500; cursor: pointer; }
+
+        .alert { padding: 0.75rem; border-radius: 8px; font-size: 0.875rem; margin-bottom: 1.5rem; text-align: center; display: none; }
+        .alert.success { background-color: #D1FAE5; color: #065F46; border: 1px solid #A7F3D0; }
+        .alert.error { background-color: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
+
+        /* Table Styling */
+        .table-container {
+            margin-top: 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: #F9FAFB;
+            padding: 12px 16px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text-main); }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background-color: #F9FAFB; }
+
+        #register-view, #dashboard-view { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="main-container" class="container">
+    <div id="alert-box" class="alert"></div>
+
+    <div id="login-view">
+        <h2>Welcome back</h2>
+        <p class="subtitle">Enter your details to sign in</p>
+        <form id="login-form">
+            <div class="form-group">
+                <label for="login-email">Email</label>
+                <input type="email" id="login-email" required placeholder="name@example.com">
+            </div>
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" required placeholder="••••••••">
+            </div>
+            <button type="submit">Sign In</button>
+        </form>
+        <div class="toggle-link">
+            Don't have an account? <span onclick="switchView('register-view')">Create one</span>
+        </div>
+    </div>
+
+    <div id="register-view">
+        <h2>Create an account</h2>
+        <p class="subtitle">Set up your profile to get started</p>
+        <form id="register-form">
+            <div class="form-group">
+                <label for="reg-name">Full Name</label>
+                <input type="text" id="reg-name" required placeholder="John Doe">
+            </div>
+            <div class="form-group">
+                <label for="reg-email">Email</label>
+                <input type="email" id="reg-email" required placeholder="name@example.com">
+            </div>
+            <div class="form-group">
+                <label for="reg-password">Password</label>
+                <input type="password" id="reg-password" required minlength="8" placeholder="At least 8 characters">
+            </div>
+            <button type="submit">Create Account</button>
+        </form>
+        <div class="toggle-link">
+            Already have an account? <span onclick="switchView('login-view')">Sign in</span>
+        </div>
+    </div>
+
+    <div id="dashboard-view">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <h2 style="text-align: left; margin: 0;">User List</h2>
+            <button onclick="logout()" style="width: auto; padding: 0.5rem 1rem; background-color: var(--text-muted); font-size: 0.8rem;">Log Out</button>
+        </div>
+        <p class="subtitle" style="text-align: left; margin-bottom: 1rem;">Data fetched from /api/v1/users</p>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody id="user-table-body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- CONFIGURATION ---
+    const API_BASE_URL = 'http://localhost:8080/api/v1/users';
+    const AUTH_BASE_URL = "http://localhost:8080/api/v1/auth";
+
+    const mainContainer = document.getElementById('main-container');
+    const loginView = document.getElementById('login-view');
+    const registerView = document.getElementById('register-view');
+    const dashboardView = document.getElementById('dashboard-view');
+    const alertBox = document.getElementById('alert-box');
+    const userTableBody = document.getElementById('user-table-body');
+
+    // --- Navigation ---
+    function switchView(viewId) {
+        loginView.style.display = 'none';
+        registerView.style.display = 'none';
+        dashboardView.style.display = 'none';
+        
+        if (viewId === 'dashboard-view') {
+            mainContainer.classList.add('dashboard-mode');
+        } else {
+            mainContainer.classList.remove('dashboard-mode');
+        }
+        
+        document.getElementById(viewId).style.display = 'block';
+        hideAlert();
+    }
+
+    function showAlert(message, isSuccess = true) {
+        alertBox.textContent = message;
+        alertBox.className = 'alert ' + (isSuccess ? 'success' : 'error');
+        alertBox.style.display = 'block';
+    }
+
+    function hideAlert() { alertBox.style.display = 'none'; }
+
+    // --- FETCH ALL USERS ---
+    async function loadUsers() {
+        userTableBody.innerHTML = '<tr><td colspan="2" style="text-align:center;">Loading...</td></tr>';
+        try {
+            const response = await fetch(API_BASE_URL); // GET Request
+            if (!response.ok) throw new Error('Failed to load users');
+            
+            const users = await response.json();
+            
+            userTableBody.innerHTML = ''; // Clear loading
+            users.forEach(user => {
+                const row = `<tr>
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                </tr>`;
+                userTableBody.insertAdjacentHTML('beforeend', row);
+            });
+        } catch (error) {
+            userTableBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color: var(--error);">Error: ${error.message}</td></tr>`;
+        }
+    }
+
+    // --- Actions ---
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('reg-name').value;
+        const email = document.getElementById('reg-email').value;
+        const password = document.getElementById('reg-password').value;
+
+        try {
+            const response = await fetch(API_BASE_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password })
+            });
+            if (!response.ok) throw new Error('Registration failed');
+
+            switchView('login-view');
+            showAlert('Account created! Please log in.', true);
+        } catch (error) {
+            showAlert(error.message, false);
+        }
+    });
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+
+        try {
+            const response = await fetch(`${AUTH_BASE_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            
+            if (!response.ok) throw new Error('Invalid credentials');
+
+            // Success!
+            switchView('dashboard-view');
+            loadUsers(); // On charge la liste direct après le login
+        } catch (error) {
+            showAlert(error.message, false);
+        }
+    });
+
+    function logout() {
+        switchView('login-view');
+        showAlert('Logged out.', true);
+    }
+</script>
+
+</body>
+</html>
