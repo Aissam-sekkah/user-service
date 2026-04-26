@@ -4,6 +4,7 @@ package com.aissek.userservice;
 import com.aissek.userservice.adapter.out.persistence.mapper.UserPersistenceMapper;
 import com.aissek.userservice.adapter.out.persistence.repository.UserJpaRepository;
 import com.aissek.userservice.domain.model.User;
+import com.aissek.userservice.domain.port.in.UserUseCase;
 import com.aissek.userservice.domain.port.out.PasswordHasherPort;
 import com.aissek.userservice.domain.port.out.UserRepositoryPort;
 import com.aissek.userservice.domain.service.UserDomainService;
@@ -29,7 +30,7 @@ public class BeanConfig {
     }
 
     @Bean
-    public UserDomainService userDomainService(UserRepositoryPort userRepositoryPort, PasswordHasherPort passwordHasherPort){
+    public UserUseCase UserUseCase(UserRepositoryPort userRepositoryPort, PasswordHasherPort passwordHasherPort){
         return new UserDomainService(userRepositoryPort, passwordHasherPort);
     }
 

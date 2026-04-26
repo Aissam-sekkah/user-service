@@ -1,15 +1,14 @@
 package com.aissek.userservice.adapter.out.persistence.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Entité JPA : représentation en base de données
@@ -37,6 +36,14 @@ public class UserEntity {
     @Setter
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
+
+    @ManyToMany
+    @JoinTable(
+            name = "user_groups",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "group_id")
+    )
+    private Set<GroupEntity> groups = new HashSet<GroupEntity>();
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
