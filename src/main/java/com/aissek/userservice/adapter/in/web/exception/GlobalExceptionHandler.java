@@ -13,38 +13,44 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(UserDomainService.UserEmailAlreadyExistsException.class)
-    public ProblemDetail handleUserEmailExist(UserDomainService.UserEmailAlreadyExistsException exception){
-        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+    public org.springframework.http.ResponseEntity<ProblemDetail> handleUserEmailExist(UserDomainService.UserEmailAlreadyExistsException exception){
+        return org.springframework.http.ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage()));
     }
 
     @ExceptionHandler(UserDomainService.UserNotFoundException.class)
-    public ProblemDetail handleUserNotFound(UserDomainService.UserNotFoundException exception) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+    public org.springframework.http.ResponseEntity<ProblemDetail> handleUserNotFound(UserDomainService.UserNotFoundException exception) {
+        return org.springframework.http.ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage()));
     }
 
     @ExceptionHandler(UserDomainService.InvalidPasswordException.class)
-    public ProblemDetail handleInvalidPassword(UserDomainService.InvalidPasswordException exception) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+    public org.springframework.http.ResponseEntity<ProblemDetail> handleInvalidPassword(UserDomainService.InvalidPasswordException exception) {
+        return org.springframework.http.ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage()));
     }
 
     @ExceptionHandler(UserDomainService.AuthenticationFailedException.class)
-    public ProblemDetail handleAuthenticationFailed(UserDomainService.AuthenticationFailedException exception) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.getMessage());
+    public org.springframework.http.ResponseEntity<ProblemDetail> handleAuthenticationFailed(UserDomainService.AuthenticationFailedException exception) {
+        return org.springframework.http.ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ProblemDetail handleIllegalArgument(IllegalArgumentException exception) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+    public org.springframework.http.ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException exception) {
+        return org.springframework.http.ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ProblemDetail handleMethodArgumentNotValid(MethodArgumentNotValidException exception) {
+    public org.springframework.http.ResponseEntity<ProblemDetail> handleMethodArgumentNotValid(MethodArgumentNotValidException exception) {
         String detail = exception.getBindingResult()
                 .getFieldErrors()
                 .stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
 
-        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+        return org.springframework.http.ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail));
     }
 }
