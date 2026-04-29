@@ -16,6 +16,7 @@ public class User {
     private String name;
     private String email;
     private String passwordHash;
+    private String refreshToken;
     private Set<Group> groups;
     private final LocalDateTime createdAt;
 
@@ -32,11 +33,12 @@ public class User {
     }
 
     // Constructeur de reconstitution depuis la bdd
-    public User(String id, String name, String email, String passwordHash,Set<Group> groups, LocalDateTime createdAt){
+    public User(String id, String name, String email, String passwordHash, String refreshToken, Set<Group> groups, LocalDateTime createdAt){
         this.id = id;
         this.name = name;
         this.email = validateEmail(email);
         this.passwordHash = validatePasswordHash(passwordHash);
+        this.refreshToken = refreshToken;
         this.groups = groups;
         this.createdAt = createdAt;
     }
@@ -55,6 +57,10 @@ public class User {
 
     public void changePassword(String passwordHash) {
         this.passwordHash = validatePasswordHash(passwordHash);
+    }
+
+    public void updateRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 
     private String validateEmail(String email) {

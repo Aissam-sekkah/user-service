@@ -39,6 +39,10 @@ public class UserEntity {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    @Setter
+    @Column(name = "refresh_token")
+    private String refreshToken;
+
     @ManyToMany
     @JoinTable(
             name = "user_groups",

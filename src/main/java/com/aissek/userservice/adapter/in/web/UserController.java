@@ -40,7 +40,16 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserResponse> create(@Valid @RequestBody CreateUserRequest request){
         log.info("REST request to create user: {}", request.email());
-        var user = userUseCase.createUser(request.name(), request.email(), request.password(), null);
+        
+        Set<Group> groups = null;
+        if (request.groupIds() != null) {
+            groups = request.groupIds().stream()
+                    .map(groupId -> groupUseCase.getGroup(groupId)
+                            .orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupId)))
+                    .collect(Collectors.toSet());
+        }
+        
+        var user = userUseCase.createUser(request.name(), request.email(), request.password(), groups);
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(user));
     }
 

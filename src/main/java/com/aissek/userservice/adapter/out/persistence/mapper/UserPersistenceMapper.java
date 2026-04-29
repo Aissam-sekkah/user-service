@@ -19,6 +19,7 @@ public class UserPersistenceMapper {
         entity.setName(user.getName());
         entity.setEmail(user.getEmail());
         entity.setPasswordHash(user.getPasswordHash());
+        entity.setRefreshToken(user.getRefreshToken());
         entity.setGroups(user.getGroups().stream().map(this::mapGroupToEntity).collect(Collectors.toSet()));
         entity.setCreatedAt(user.getCreatedAt());
         return entity;
@@ -31,6 +32,7 @@ public class UserPersistenceMapper {
                 userEntity.getName(),
                 userEntity.getEmail(),
                 userEntity.getPasswordHash(),
+                userEntity.getRefreshToken(),
                 userEntity.getGroups().stream().map(this::mapGroupToDomaine).collect(Collectors.toSet()),
                 userEntity.getCreatedAt()
         );

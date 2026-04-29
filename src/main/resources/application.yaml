@@ -52,3 +52,11 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+
+# Security Configuration
+application:
+  security:
+    jwt:
+      # In production, this MUST be an environment variable
+      secret: ${JWT_SECRET:v9y$B&E)H@McqTJsWnZr4u7x!z%C*F-JaNcUhiração2}
+      expiration: 3600000 # 1 hour

@@ -12,6 +12,6 @@ public record UpdateUserRequest(
         @NotBlank(message = "email must not be blank")
         @Email(message = "email must be a well-formed email address")
         String email,
-        java.util.List<String> groupIds
+        java.util.Set<String> groupIds
 ) {
 }
