@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 /**
  * HTTP entry point for authentication operations.
  */
-@CrossOrigin(origins = "*") // À restreindre en production !
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
