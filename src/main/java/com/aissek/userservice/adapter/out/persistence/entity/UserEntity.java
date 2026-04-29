@@ -20,9 +20,11 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
+@Setter
 public class UserEntity {
 
     @Id
+    @Column(name = "id", updatable = false, nullable = false, length = 36)
     private String id;
 
     @Setter

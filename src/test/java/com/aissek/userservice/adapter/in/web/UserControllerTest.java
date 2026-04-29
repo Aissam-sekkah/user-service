@@ -10,6 +10,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -33,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @Import(PersistenceConfig.class)
+@ActiveProfiles("test")
 class UserControllerTest {
 
     private static final String BASE_URL = "/api/v1/users";
@@ -40,9 +42,10 @@ class UserControllerTest {
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-            .withDatabaseName("userdb")
-            .withUsername("postgres")
-            .withPassword("secret");
+            .withDatabaseName("testdb")
+            .withUsername("test")
+            .withPassword("test")
+            .withReuse(false);
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
@@ -71,7 +74,7 @@ class UserControllerTest {
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         userJpaRepository.deleteAll();
-        existingUser = adapter.save(new User("ali", "ali@gmail.com", passwordEncoder.encode("password123")));
+        existingUser = adapter.save(new User("ali", "ali@gmail.com", passwordEncoder.encode("password123"), null));
     }
 
     @Test
@@ -174,7 +177,7 @@ class UserControllerTest {
 
     @Test
     void shouldReturnAllUsers() throws Exception {
-        adapter.save(new User("Sara", "sara@gmail.com", passwordEncoder.encode("password456")));
+        adapter.save(new User("Sara", "sara@gmail.com", passwordEncoder.encode("password456"), null));
 
         mockMvc.perform(get(BASE_URL))
                 .andExpect(status().isOk())
