@@ -43,7 +43,7 @@ class UserDomainServiceTest {
     void setUp(){
         name = "ali";
         email = "ali@email.com";
-        password = "password123";
+        password = "Password123!";
         passwordHash = "$2a$10$hashedPassword";
         user = new User("123", "ali", "ali@email.com", passwordHash, null, LocalDateTime.now());
     }
@@ -81,7 +81,7 @@ class UserDomainServiceTest {
     @Test
     @DisplayName("Test de changement de mot de passe")
     void shouldChangePasswordSuccessfully() {
-        String newPassword = "newPassword123";
+        String newPassword = "NewPassword123!";
         String newPasswordHash = "$2a$10$newHashedPassword";
 
         when(userRepository.findById("123")).thenReturn(java.util.Optional.of(user));

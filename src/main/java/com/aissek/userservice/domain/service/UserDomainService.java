@@ -3,6 +3,7 @@ package com.aissek.userservice.domain.service;
 import com.aissek.userservice.domain.exception.*;
 import com.aissek.userservice.domain.model.Group;
 import com.aissek.userservice.domain.model.User;
+import com.aissek.userservice.domain.model.PasswordPolicy;
 import com.aissek.userservice.domain.port.in.UserUseCase;
 import com.aissek.userservice.domain.port.out.GroupRepositoryPort;
 import com.aissek.userservice.domain.port.out.PasswordHasherPort;
@@ -32,6 +33,9 @@ public class UserDomainService implements UserUseCase {
     @Override
     @Transactional
     public User createUser(String name, String email, String password, Set<Group> groups) {
+        // Enforce password policy
+        new PasswordPolicy(password);
+        
         // Règle métier : Email unique
         if(userRepository.existByEmail(email))
             throw new ConflictException("Email déjà utilisé : " + email);
@@ -78,6 +82,9 @@ public class UserDomainService implements UserUseCase {
         if (!passwordHasher.matches(currentPassword, user.getPasswordHash())) {
             throw new InvalidDomainStateException("Mot de passe actuel invalide");
         }
+
+        // Enforce password policy for the new password
+        new PasswordPolicy(newPassword);
 
         user.changePassword(passwordHasher.hash(newPassword));
         userRepository.save(user);

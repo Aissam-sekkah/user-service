@@ -54,7 +54,7 @@ class UserControllerTest {
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         userJpaRepository.deleteAll();
-        existingUser = adapter.save(new User("ali", "ali@gmail.com", passwordEncoder.encode("password123"), null));
+        existingUser = adapter.save(new User("ali", "ali@gmail.com", passwordEncoder.encode("Password123!"), null));
     }
 
     @Test
@@ -62,7 +62,7 @@ class UserControllerTest {
         mockMvc.perform(post(BASE_URL)
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"name":"Amal","email":"amal@gmail.com","password":"password123"}
+                                {"name":"Amal","email":"amal@gmail.com","password":"Password123!"}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNotEmpty())
@@ -77,8 +77,8 @@ class UserControllerTest {
                 .findFirst()
                 .orElseThrow();
         assertThat(savedEntity.getPasswordHash()).isNotBlank();
-        assertThat(savedEntity.getPasswordHash()).isNotEqualTo("password123");
-        assertThat(passwordEncoder.matches("password123", savedEntity.getPasswordHash())).isTrue();
+        assertThat(savedEntity.getPasswordHash()).isNotEqualTo("Password123!");
+        assertThat(passwordEncoder.matches("Password123!", savedEntity.getPasswordHash())).isTrue();
     }
 
     @Test
@@ -86,7 +86,7 @@ class UserControllerTest {
         mockMvc.perform(post(AUTH_BASE_URL + "/login")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"email":"ali@gmail.com","password":"password123"}
+                                {"email":"ali@gmail.com","password":"Password123!"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(existingUser.getId()))
@@ -114,7 +114,7 @@ class UserControllerTest {
         mockMvc.perform(post(AUTH_BASE_URL + "/login")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"email":"missing@gmail.com","password":"password123"}
+                                {"email":"missing@gmail.com","password":"Password123!"}
                                 """))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.detail").value("Email ou mot de passe invalide"))
@@ -202,7 +202,7 @@ class UserControllerTest {
         mockMvc.perform(post(BASE_URL)
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"name":"Amal","email":"ali@gmail.com","password":"password123"}
+                                {"name":"Amal","email":"ali@gmail.com","password":"Password123!"}
                                 """))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("Email déjà utilisé : ali@gmail.com"))
@@ -322,13 +322,13 @@ class UserControllerTest {
         mockMvc.perform(put(BASE_URL + "/" + existingUser.getId() + "/password")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"currentPassword":"password123","newPassword":"newPassword123"}
+                                {"currentPassword":"Password123!","newPassword":"NewPassword123!"}
                                 """))
                 .andExpect(status().isNoContent());
 
         var savedEntity = userJpaRepository.findById(existingUser.getId()).orElseThrow();
-        assertThat(passwordEncoder.matches("newPassword123", savedEntity.getPasswordHash())).isTrue();
-        assertThat(passwordEncoder.matches("password123", savedEntity.getPasswordHash())).isFalse();
+        assertThat(passwordEncoder.matches("NewPassword123!", savedEntity.getPasswordHash())).isTrue();
+        assertThat(passwordEncoder.matches("Password123!", savedEntity.getPasswordHash())).isFalse();
     }
 
     @Test
@@ -336,14 +336,14 @@ class UserControllerTest {
         mockMvc.perform(put(BASE_URL + "/" + existingUser.getId() + "/password")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"currentPassword":"password123","newPassword":"newPassword123"}
+                                {"currentPassword":"Password123!","newPassword":"NewPassword123!"}
                                 """))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(post(AUTH_BASE_URL + "/login")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"email":"ali@gmail.com","password":"password123"}
+                                {"email":"ali@gmail.com","password":"Password123!"}
                                 """))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.detail").value("Email ou mot de passe invalide"))
@@ -352,7 +352,7 @@ class UserControllerTest {
         mockMvc.perform(post(AUTH_BASE_URL + "/login")
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"email":"ali@gmail.com","password":"newPassword123"}
+                                {"email":"ali@gmail.com","password":"NewPassword123!"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(existingUser.getId()))

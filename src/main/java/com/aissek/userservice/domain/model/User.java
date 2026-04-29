@@ -1,6 +1,6 @@
 package com.aissek.userservice.domain.model;
 
-
+import com.aissek.userservice.domain.service.EmailValidator;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -26,7 +26,7 @@ public class User {
         this.id = UUID.randomUUID().toString();
         this.createdAt = LocalDateTime.now();
         this.name = name;
-        this.email = email;
+        this.email = validateEmail(email);
         this.groups = (groups != null) ? groups : new HashSet<>();
         this.passwordHash = validatePasswordHash(passwordHash);
     }
@@ -35,7 +35,7 @@ public class User {
     public User(String id, String name, String email, String passwordHash,Set<Group> groups, LocalDateTime createdAt){
         this.id = id;
         this.name = name;
-        this.email = email;
+        this.email = validateEmail(email);
         this.passwordHash = validatePasswordHash(passwordHash);
         this.groups = groups;
         this.createdAt = createdAt;
@@ -46,18 +46,20 @@ public class User {
         if(name == null || name.isBlank()){
             throw new IllegalArgumentException("Le nom ne peut pas etre vide");
         }
-        if(!email.contains("@")){
-            throw new IllegalArgumentException("Email invalide");
-        }
-
+        
         this.name = name;
-        this.email = email;
+        this.email = validateEmail(email);
         if(groups != null)
             this.groups = groups;
     }
 
     public void changePassword(String passwordHash) {
         this.passwordHash = validatePasswordHash(passwordHash);
+    }
+
+    private String validateEmail(String email) {
+        EmailValidator.validate(email);
+        return email;
     }
 
     private String validatePasswordHash(String passwordHash) {
