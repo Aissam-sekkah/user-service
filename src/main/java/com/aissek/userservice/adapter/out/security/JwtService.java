@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import jakarta.annotation.PostConstruct;
 
 /**
  * JWT Utility Service for token lifecycle management.
@@ -23,11 +24,23 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    @Value("${application.security.jwt.secret:DefaultSecureSecretKeyForDevelopmentOnly1234567890123456}")
+    @Value("${application.security.jwt.secret}")
     private String secretKey;
 
     @Value("${application.security.jwt.expiration:3600000}") // 1 hour
     private long jwtExpiration;
+
+    @Value("${application.security.jwt.refresh-expiration:604800000}") // 7 days
+    private long refreshExpiration;
+
+    @PostConstruct
+    public void validateSecretKey() {
+        if (secretKey == null || secretKey.isBlank() || secretKey.length() < 32) {
+            log.error("JWT_SECRET validation failed: key must be set and at least 32 characters");
+            throw new IllegalStateException("JWT_SECRET must be set as an environment variable and be at least 32 characters long for security");
+        }
+        log.info("JWT secret key validated successfully (length: {})", secretKey.length());
+    }
 
     private SecretKey getSigningKey() {
         byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
@@ -58,14 +71,19 @@ public class JwtService {
         return Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 604800000L)) // 7 days
+                .setExpiration(new Date(System.currentTimeMillis() + refreshExpiration))
                 .signWith(getSigningKey())
                 .compact();
     }
 
     public boolean isTokenValid(String token, String username) {
-        final String extractedUsername = extractUsername(token);
-        return (extractedUsername.equals(username) && !isTokenExpired(token));
+        try {
+            final String extractedUsername = extractUsername(token);
+            return (extractedUsername.equals(username) && !isTokenExpired(token));
+        } catch (IllegalArgumentException e) {
+            // Token is invalid or expired
+            return false;
+        }
     }
 
     private boolean isTokenExpired(String token) {
@@ -79,9 +97,21 @@ public class JwtService {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            log.warn("JWT token expired: {}", e.getMessage());
+            throw new IllegalArgumentException("JWT token has expired");
+        } catch (io.jsonwebtoken.UnsupportedJwtException e) {
+            log.warn("JWT token unsupported: {}", e.getMessage());
+            throw new IllegalArgumentException("JWT token is unsupported");
+        } catch (io.jsonwebtoken.MalformedJwtException e) {
+            log.warn("JWT token malformed: {}", e.getMessage());
+            throw new IllegalArgumentException("JWT token is malformed");
         } catch (JwtException e) {
-            log.error("JWT token parsing failed: {}", e.getMessage());
-            throw new IllegalArgumentException("Invalid or expired JWT token");
+            log.error("JWT token validation failed: {}", e.getMessage());
+            throw new IllegalArgumentException("Invalid JWT token");
+        } catch (Exception e) {
+            log.error("Unexpected error during JWT validation: {}", e.getMessage());
+            throw new IllegalArgumentException("Invalid JWT token");
         }
     }
 }

@@ -1,0 +1,13 @@
+# Development-specific configuration
+logging:
+  level:
+    com.aissek.userservice: DEBUG
+    org.hibernate.sql: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
+
+spring:
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true

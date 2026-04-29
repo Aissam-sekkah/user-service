@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -64,11 +65,18 @@ class SecurityIntegrationTest {
     @DisplayName("Refresh endpoint should return new tokens for valid refresh token")
     void refreshEndpointShouldReturnNewTokens() throws Exception {
         User dummyUser = new User("Test", "test@example.com", "hashed_pw", Set.of());
-        when(userUseCase.refreshAccessToken("valid-refresh-token")).thenReturn(dummyUser);
+        String validRefreshToken = jwtService.generateRefreshToken("test@example.com");
+        
+        // We must mock the hashedPassword token for the dummyUser
+        // In a real scenario, it's hashed by PasswordHasherPort
+        // But since we are mocking UserUseCase.refreshAccessToken, 
+        // the internal logic of UserDomainService (which does the hashing) 
+        // is bypassed if we mock the use case.
+        when(userUseCase.refreshAccessToken(validRefreshToken)).thenReturn(dummyUser);
 
         mockMvc.perform(post("/api/v1/auth/refresh")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("valid-refresh-token"))
+                .content("{\"refreshToken\":\"" + validRefreshToken + "\"}"))
                 .andExpect(status().isOk())
                 .andExpect(result -> {
                     String content = result.getResponse().getContentAsString();
@@ -80,12 +88,12 @@ class SecurityIntegrationTest {
     @Test
     @DisplayName("Refresh endpoint should return 401 for invalid refresh token")
     void refreshEndpointShouldReturn401ForInvalidToken() throws Exception {
-        when(userUseCase.refreshAccessToken("invalid-token"))
-                .thenThrow(new com.aissek.userservice.domain.exception.AuthenticationException("Invalid token"));
+        String invalidToken = "invalid-token";
+        when(userUseCase.refreshAccessToken(invalidToken)).thenThrow(new com.aissek.userservice.domain.exception.AuthenticationException("Invalid or expired refresh token"));
 
         mockMvc.perform(post("/api/v1/auth/refresh")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("invalid-token"))
+                .content("{\"refreshToken\":\"" + invalidToken + "\"}"))
                 .andExpect(status().isUnauthorized());
     }
 

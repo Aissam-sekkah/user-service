@@ -3,6 +3,8 @@ package com.aissek.userservice;
 
 import com.aissek.userservice.adapter.out.persistence.mapper.UserPersistenceMapper;
 import com.aissek.userservice.adapter.out.persistence.repository.UserJpaRepository;
+import com.aissek.userservice.adapter.out.security.JwtService;
+import com.aissek.userservice.config.AuditConfig.AuditLogger;
 import com.aissek.userservice.domain.model.User;
 import com.aissek.userservice.domain.port.in.GroupUseCase;
 import com.aissek.userservice.domain.port.in.UserUseCase;
@@ -33,8 +35,8 @@ public class BeanConfig {
     }
 
     @Bean
-    public UserUseCase UserUseCase(UserRepositoryPort userRepositoryPort, PasswordHasherPort passwordHasherPort, GroupRepositoryPort groupRepositoryPort){
-        return new UserDomainService(userRepositoryPort, passwordHasherPort, groupRepositoryPort);
+    public UserUseCase UserUseCase(UserRepositoryPort userRepositoryPort, PasswordHasherPort passwordHasherPort, GroupRepositoryPort groupRepositoryPort, JwtService jwtService, AuditLogger auditLogger){
+        return new UserDomainService(userRepositoryPort, passwordHasherPort, groupRepositoryPort, jwtService, auditLogger);
     }
 
     @Bean

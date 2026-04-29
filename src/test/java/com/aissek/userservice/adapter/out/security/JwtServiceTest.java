@@ -20,6 +20,7 @@ class JwtServiceTest {
         jwtService = new JwtService();
         ReflectionTestUtils.setField(jwtService, "secretKey", secret);
         ReflectionTestUtils.setField(jwtService, "jwtExpiration", expiration);
+        ReflectionTestUtils.setField(jwtService, "refreshExpiration", 604800000L); // 7 days
     }
 
     @Test

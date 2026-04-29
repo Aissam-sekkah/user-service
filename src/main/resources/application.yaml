@@ -11,8 +11,8 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/userdb
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: secret
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
 
 # JPA Hibernate
   jpa:
@@ -36,9 +36,9 @@ spring:
 logging:
   level:
     root: info
-    com.aissek.userservice: DEBUG
-    org.hibernate.sql: DEBUG
-    org.hibernate.type.descriptor.sql: TRACE
+    com.aissek.userservice: INFO
+    org.hibernate.sql: WARN
+    org.hibernate.type.descriptor.sql: WARN
 
 # ACTUATOR & MONITORING
 management:
@@ -57,6 +57,8 @@ management:
 application:
   security:
     jwt:
-      # In production, this MUST be an environment variable
-      secret: ${JWT_SECRET:v9y$B&E)H@McqTJsWnZr4u7x!z%C*F-JaNcUhiração2}
-      expiration: 3600000 # 1 hour
+      # ⚠️ CRITICAL: MUST be set as environment variable in production
+      # Never commit secrets to version control
+      secret: ${JWT_SECRET:}
+      expiration: ${JWT_EXPIRATION:3600000}             # 1 hour (access token)
+      refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7 days (refresh token)

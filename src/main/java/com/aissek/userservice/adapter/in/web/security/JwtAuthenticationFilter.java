@@ -43,7 +43,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         final String jwt = authHeader.substring(7);
-        final String userEmail = jwtService.extractUsername(jwt);
+        String userEmail = null;
+        
+        try {
+            userEmail = jwtService.extractUsername(jwt);
+        } catch (IllegalArgumentException e) {
+            log.warn("JWT validation failed: {}", e.getMessage());
+            // We don't throw exception here; we let the request proceed without authentication.
+            // The SecurityConfig authorization rules will then trigger the AuthenticationEntryPoint.
+        }
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);

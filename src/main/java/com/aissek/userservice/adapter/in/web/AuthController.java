@@ -7,6 +7,8 @@ import com.aissek.userservice.adapter.out.security.JwtService;
 import com.aissek.userservice.domain.port.in.UserUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,16 +19,24 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
+@Slf4j
 public class AuthController {
 
     private final UserUseCase userUseCase;
     private final JwtService jwtService;
+
+    @Value("${application.security.jwt.expiration:3600000}")
+    private long accessTokenExpiration;
+
+    @Value("${application.security.jwt.refresh-expiration:604800000}")
+    private long refreshTokenExpiration;
 
     /**
      * Authenticates a user and returns access and refresh tokens.
      */
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
+        log.info("Login attempt for email: {}", request.email());
         var user = userUseCase.login(request.email(), request.password());
         
         String accessToken = jwtService.generateToken(user.getEmail());
@@ -34,12 +44,13 @@ public class AuthController {
         
         userUseCase.updateRefreshToken(user.getId(), refreshToken);
         
+        log.info("Login successful for user: {}", user.getEmail());
         return ResponseEntity.ok(new TokenResponse(
                 accessToken, 
                 refreshToken, 
                 "Bearer", 
-                3600000L, // 1 hour
-                604800000L // 7 days
+                accessTokenExpiration,
+                refreshTokenExpiration
         ));
     }
 
@@ -48,6 +59,7 @@ public class AuthController {
      */
     @PostMapping("/refresh")
     public ResponseEntity<TokenResponse> refresh(@Valid @RequestBody RefreshRequest request) {
+        log.info("Token refresh attempt");
         var user = userUseCase.refreshAccessToken(request.refreshToken());
         
         String newAccessToken = jwtService.generateToken(user.getEmail());
@@ -55,12 +67,13 @@ public class AuthController {
         
         userUseCase.updateRefreshToken(user.getId(), newRefreshToken);
         
+        log.info("Token refresh successful for user: {}", user.getEmail());
         return ResponseEntity.ok(new TokenResponse(
                 newAccessToken, 
                 newRefreshToken, 
                 "Bearer", 
-                3600000L, 
-                604800000L
+                accessTokenExpiration,
+                refreshTokenExpiration
         ));
     }
 }

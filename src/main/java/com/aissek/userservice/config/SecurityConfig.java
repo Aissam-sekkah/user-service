@@ -11,13 +11,17 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 /**
  * Security Configuration: Enforces statelessness and defines access rules.
+ * Includes security headers for production hardening.
  */
 @Configuration
 @EnableWebSecurity
@@ -25,6 +29,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
     public JwtAuthenticationFilter jwtAuthFilter(JwtService jwtService, UserDetailsService userDetailsService) {
@@ -34,8 +39,26 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthFilter) throws Exception {
         http
-            .cors(org.springframework.security.config.Customizer.withDefaults()) // Enable CORS
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .csrf(AbstractHttpConfigurer::disable)
+            .headers(headers -> headers
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives(
+                        "default-src 'self'; " +
+                        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+                        "style-src 'self' 'unsafe-inline'; " +
+                        "img-src 'self' data: https:; " +
+                        "font-src 'self' data:; " +
+                        "frame-ancestors 'self'; " +
+                        "base-uri 'self'; " +
+                        "form-action 'self'"
+                    )
+                )
+                .xssProtection(xss -> xss.headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
+                .contentTypeOptions(Customizer.withDefaults())
+                .frameOptions(frame -> frame.sameOrigin())
+                .cacheControl(cache -> cache.disable())
+            )
             .exceptionHandling(exception -> exception
                 .authenticationEntryPoint(jwtAuthenticationEntryPoint)
             )

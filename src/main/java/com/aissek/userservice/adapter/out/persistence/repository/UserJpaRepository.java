@@ -15,7 +15,4 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, String> {
 
     @Query("SELECT u FROM UserEntity u LEFT JOIN FETCH u.groups WHERE u.email = :email")
     Optional<UserEntity> findByEmail(@Param("email") String email);
-
-    @Query("SELECT u FROM UserEntity u LEFT JOIN FETCH u.groups WHERE u.refreshToken = :refreshToken")
-    Optional<UserEntity> findByRefreshToken(@Param("refreshToken") String refreshToken);
 }
