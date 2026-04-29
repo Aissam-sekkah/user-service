@@ -89,12 +89,11 @@ class UserControllerTest {
                                 {"email":"ali@gmail.com","password":"Password123!"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(existingUser.getId()))
-                .andExpect(jsonPath("$.name").value("ali"))
-                .andExpect(jsonPath("$.email").value("ali@gmail.com"))
-                .andExpect(jsonPath("$.createdAt").isNotEmpty())
-                .andExpect(jsonPath("$.password").doesNotExist())
-                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
+                .andExpect(jsonPath("$.type").value("Bearer"))
+                .andExpect(jsonPath("$.accessTokenExpiresIn").isNotEmpty())
+                .andExpect(jsonPath("$.refreshTokenExpiresIn").isNotEmpty());
     }
 
     @Test
@@ -355,8 +354,8 @@ class UserControllerTest {
                                 {"email":"ali@gmail.com","password":"NewPassword123!"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(existingUser.getId()))
-                .andExpect(jsonPath("$.email").value("ali@gmail.com"));
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty());
     }
 
     @Test

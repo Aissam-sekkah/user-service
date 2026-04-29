@@ -42,11 +42,6 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
     }
 
     @Override
-    public Optional<User> findByRefreshToken(String refreshToken) {
-        return jpaRepository.findByRefreshToken(refreshToken).map(mapper::toDomaine);
-    }
-
-    @Override
     public List<User> findAll() {
         return jpaRepository.findAll().stream().map(mapper::toDomaine).toList();
     }
