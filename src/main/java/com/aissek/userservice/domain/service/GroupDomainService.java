@@ -1,26 +1,30 @@
 package com.aissek.userservice.domain.service;
 
+import com.aissek.userservice.domain.exception.*;
 import com.aissek.userservice.domain.model.Group;
 import com.aissek.userservice.domain.port.in.GroupUseCase;
 import com.aissek.userservice.domain.port.out.GroupRepositoryPort;
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class GroupDomainService implements GroupUseCase {
 
     private final GroupRepositoryPort groupRepositoryPort;
 
     @Override
+    @Transactional
     public Group createGroup(String name, String description) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Le nom du groupe ne peut pas être vide");
         }
 
         if (groupRepositoryPort.existsByName(name)) {
-            throw new GroupAlreadyExistsException("Le groupe avec le nom '" + name + "' existe déjà");
+            throw new ConflictException("Le groupe avec le nom '" + name + "' existe déjà");
         }
 
         Group newGroup = new Group(name, description);
@@ -38,26 +42,22 @@ public class GroupDomainService implements GroupUseCase {
     }
 
     @Override
+    @Transactional
     public Group updateGroup(String id, String name, String description) {
         return groupRepositoryPort.findById(id)
                 .map(group -> {
                     group.updateGroup(name, description);
                     return groupRepositoryPort.save(group);
                 })
-                .orElseThrow(() -> new IllegalArgumentException("Groupe non trouvé : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Groupe non trouvé : " + id));
     }
 
     @Override
+    @Transactional
     public void deleteGroup(String id) {
         if (groupRepositoryPort.findById(id).isEmpty()) {
-            throw new IllegalArgumentException("Groupe non trouvé : " + id);
+            throw new ResourceNotFoundException("Groupe non trouvé : " + id);
         }
         groupRepositoryPort.deleteById(id);
-    }
-
-    public static class GroupAlreadyExistsException extends RuntimeException {
-        public GroupAlreadyExistsException(String message) {
-            super(message);
-        }
     }
 }
