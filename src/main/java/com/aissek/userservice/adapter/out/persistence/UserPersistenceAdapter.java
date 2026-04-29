@@ -5,6 +5,7 @@ import com.aissek.userservice.adapter.out.persistence.repository.UserJpaReposito
 import com.aissek.userservice.domain.model.User;
 import com.aissek.userservice.domain.port.out.UserRepositoryPort;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.Optional;
  * ADAPTER SORTANT : implémente UserRepositoryPort avec JPA
  * on pourrait remplacer JPA par mongoDB sans toucher au domaine.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class UserPersistenceAdapter implements UserRepositoryPort {
@@ -24,6 +26,7 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
 
     @Override
     public User save(User user) {
+        log.debug("Saving user to database: {}", user.getEmail());
         var saved = jpaRepository.save(mapper.toEntity(user));
         return mapper.toDomaine(saved);
     }
@@ -50,6 +53,7 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
 
     @Override
     public void deleteById(String id) {
+        log.info("Deleting user from database with ID: {}", id);
         jpaRepository.deleteById(id);
     }
 }
