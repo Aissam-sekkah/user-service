@@ -5,26 +5,32 @@ import com.aissek.userservice.adapter.in.web.dto.CreateUserRequest;
 import com.aissek.userservice.adapter.in.web.dto.UpdateUserRequest;
 import com.aissek.userservice.adapter.in.web.dto.UserResponse;
 import com.aissek.userservice.adapter.in.web.mapper.UserWebMapper;
+import com.aissek.userservice.domain.model.Group;
+import com.aissek.userservice.domain.port.in.GroupUseCase;
 import com.aissek.userservice.domain.port.in.UserUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * ADAPTER ENTRANT : traduit HTTP -> domain.
  * Ne contient AUCUNE logique métier, uniquement de la traduction
  */
-@CrossOrigin(origins = "*") // À restreindre en production !
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
+@Slf4j
 public class UserController {
 
     private final UserUseCase userUseCase;
+    private final GroupUseCase groupUseCase;
     private final UserWebMapper mapper;
 
     /**
@@ -33,7 +39,8 @@ public class UserController {
      */
     @PostMapping
     public ResponseEntity<UserResponse> create(@Valid @RequestBody CreateUserRequest request){
-        var user = userUseCase.createUser(request.name(), request.email(), request.password());
+        log.info("REST request to create user: {}", request.email());
+        var user = userUseCase.createUser(request.name(), request.email(), request.password(), null);
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(user));
     }
 
@@ -43,6 +50,7 @@ public class UserController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getById(@PathVariable String id){
+        log.debug("REST request to get user by ID: {}", id);
         return ResponseEntity.status(HttpStatus.OK).body(mapper.toResponse(userUseCase.getUserById(id)));
     }
 
@@ -62,7 +70,16 @@ public class UserController {
      */
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> update(@PathVariable String id, @Valid @RequestBody UpdateUserRequest request){
-        var user = userUseCase.updateUser(id, request.name(), request.email());
+        log.info("REST request to update user ID: {}", id);
+        Set<Group> groups = null;
+        if (request.groupIds() != null) {
+            groups = request.groupIds().stream()
+                    .map(groupId -> groupUseCase.getGroup(groupId)
+                            .orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupId)))
+                    .collect(Collectors.toSet());
+        }
+
+        var user = userUseCase.updateUser(id, request.name(), request.email(), groups);
         return ResponseEntity.status(HttpStatus.OK).body(mapper.toResponse(user));
     }
 
@@ -72,6 +89,7 @@ public class UserController {
      */
     @PutMapping("/{id}/password")
     public ResponseEntity<Void> changePassword(@PathVariable String id, @Valid @RequestBody ChangePasswordRequest request) {
+        log.info("REST request to change password for user ID: {}", id);
         userUseCase.changePassword(id, request.currentPassword(), request.newPassword());
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
@@ -82,6 +100,7 @@ public class UserController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable String id){
+        log.info("REST request to delete user ID: {}", id);
         userUseCase.deleteUser(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Service Dashboard</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="app" v-cloak class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8 bg-white p-6 rounded-lg shadow-md">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">User Service Dashboard</h1>
+                <p class="text-gray-500">Manage your users and groups</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <button @click="testConnection" 
+                        :class="connectionStatus === 'online' ? 'bg-green-500' : 'bg-red-500'"
+                        class="px-4 py-2 text-white rounded-full font-medium transition-colors duration-300 hover:opacity-80">
+                    {{ connectionStatus === 'online' ? '● Server Online' : '● Server Offline' }}
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- LOGIN TEST SECTION -->
+            <section class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b pb-2">Authentication Test</h2>
+                <form @submit.prevent="login" class="space-y-4 bg-blue-50 p-4 rounded-md border border-blue-100">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Email</label>
+                        <input v-model="loginForm.email" type="email" placeholder="ali@gmail.com" required 
+                               class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-400 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Password</label>
+                        <input v-model="loginForm.password" type="password" placeholder="password123" required 
+                               class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-400 outline-none">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700 transition">
+                        Login
+                    </button>
+                </form>
+                <div v-if="loginResult" class="mt-4 p-3 rounded-md text-sm" 
+                     :class="loginResult.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+                    {{ loginResult.message }}
+                </div>
+            </section>
+
+            <!-- USER MANAGEMENT SECTION -->
+            <section class="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
+                <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b pb-2">User Management</h2>
+                
+                <!-- Create User Form -->
+                <form @submit.prevent="createUser" class="space-y-4 mb-8 bg-gray-50 p-4 rounded-md border">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input v-model="userForm.name" type="text" placeholder="Full Name" required 
+                               class="p-2 border rounded focus:ring-2 focus:ring-blue-400 outline-none">
+                        <input v-model="userForm.email" type="email" placeholder="Email" required 
+                               class="p-2 border rounded focus:ring-2 focus:ring-blue-400 outline-none">
+                        <input v-model="userForm.password" type="password" placeholder="Password" required 
+                               class="p-2 border rounded focus:ring-2 focus:ring-blue-400 outline-none">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700 transition">
+                        Create User
+                    </button>
+                </form>
+
+                <!-- User Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-200 text-gray-700">
+                                <th class="p-3 border">Name</th>
+                                <th class="p-3 border">Email</th>
+                                <th class="p-3 border">Groups</th>
+                                <th class="p-3 border">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50 transition">
+                                <td class="p-3 border">{{ user.name }}</td>
+                                <td class="p-3 border">{{ user.email }}</td>
+                                <td class="p-3 border">
+                                    <div class="flex flex-wrap gap-1">
+                                        <span v-for="group in user.groups" :key="group.id" 
+                                              class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                            {{ group.name }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="p-3 border text-center space-x-2">
+                                    <button @click="openEditUser(user)" class="text-blue-500 hover:text-blue-700 font-medium">Edit/Groups</button>
+                                    <button @click="deleteUser(user.id)" class="text-red-500 hover:text-red-700 font-medium">Delete</button>
+                                </td>
+                            </tr>
+                            <tr v-if="users.length === 0">
+                                <td colspan="4" class="p-4 text-center text-gray-400 italic">No users found</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- GROUP MANAGEMENT SECTION -->
+        <section class="bg-white p-6 rounded-lg shadow-md mt-8">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b pb-2">Group Management</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <form @submit.prevent="createGroup" class="space-y-4 bg-gray-50 p-4 rounded-md border h-fit">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Group Name</label>
+                        <input v-model="groupForm.name" type="text" required 
+                               class="w-full p-2 border rounded focus:ring-2 focus:ring-green-400 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Description</label>
+                        <input v-model="groupForm.description" type="text" 
+                               class="w-full p-2 border rounded focus:ring-2 focus:ring-green-400 outline-none">
+                    </div>
+                    <button type="submit" class="w-full bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700 transition">
+                        Create Group
+                    </button>
+                </form>
+
+                <div class="lg:col-span-2 overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-200 text-gray-700">
+                                <th class="p-3 border">Name</th>
+                                <th class="p-3 border">Description</th>
+                                <th class="p-3 border">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="group in groups" :key="group.id" class="hover:bg-gray-50 transition">
+                                <td class="p-3 border font-medium">{{ group.name }}</td>
+                                <td class="p-3 border text-gray-600">{{ group.description }}</td>
+                                <td class="p-3 border text-center">
+                                    <button @click="deleteGroup(group.id)" class="text-red-500 hover:text-red-700 font-medium">Delete</button>
+                                </td>
+                            </tr>
+                            <tr v-if="groups.length === 0">
+                                <td colspan="3" class="p-4 text-center text-gray-400 italic">No groups found</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- EDIT USER MODAL -->
+        <div v-if="editUserOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 class="text-xl font-bold mb-4 text-gray-800">Update User & Groups</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Name</label>
+                        <input v-model="editUserForm.name" type="text" class="w-full p-2 border rounded outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Email</label>
+                        <input v-model="editUserForm.email" type="email" class="w-full p-2 border rounded outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-2">Assign Groups</label>
+                        <div class="max-h-40 overflow-y-auto border rounded p-2 space-y-2">
+                            <label v-for="group in groups" :key="group.id" class="flex items-center gap-2 p-1 hover:bg-gray-100 rounded cursor-pointer">
+                                <input type="checkbox" :value="group.id" v-model="editUserForm.groupIds" class="rounded text-blue-600">
+                                <span class="text-sm text-gray-700">{{ group.name }}</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button @click="editUserOpen = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded font-medium">Cancel</button>
+                    <button @click="updateUser" class="px-4 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 transition">Save Changes</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="fixed bottom-4 right-4 space-y-2">
+            <div v-for="notif in notifications" :key="notif.id" 
+                 :class="notif.type === 'success' ? 'bg-green-600' : 'bg-red-600'"
+                 class="px-6 py-3 text-white rounded-lg shadow-lg transition-all duration-500 transform translate-y-0">
+                {{ notif.message }}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const users = ref([]);
+                const groups = ref([]);
+                const connectionStatus = ref('offline');
+                const notifications = ref([]);
+                
+                const userForm = ref({ name: '', email: '', password: '' });
+                const groupForm = ref({ name: '', description: '' });
+                const loginForm = ref({ email: '', password: '' });
+                const loginResult = ref(null);
+
+                const editUserOpen = ref(false);
+                const editUserForm = ref({ id: '', name: '', email: '', groupIds: [] });
+
+                const API_BASE = '/api/v1';
+
+                const notify = (message, type = 'success') => {
+                    const id = Date.now();
+                    notifications.value.push({ id, message, type });
+                    setTimeout(() => {
+                        notifications.value = notifications.value.filter(n => n.id !== id);
+                    }, 3000);
+                };
+
+                const testConnection = async () => {
+                    try {
+                        const res = await fetch(`${API_BASE}/users`);
+                        if (res.ok) {
+                            connectionStatus.value = 'online';
+                            notify('Server connection successful!');
+                        } else {
+                            throw new Error();
+                        }
+                    } catch (e) {
+                        connectionStatus.value = 'offline';
+                        notify('Server connection failed!', 'error');
+                    }
+                };
+
+                const fetchUsers = async () => {
+                    try {
+                        const res = await fetch(`${API_BASE}/users`);
+                        users.value = await res.json();
+                    } catch (e) { console.error(e); }
+                };
+
+                const fetchGroups = async () => {
+                    try {
+                        const res = await fetch(`${API_BASE}/groups`);
+                        groups.value = await res.json();
+                    } catch (e) { console.error(e); }
+                };
+
+                const login = async () => {
+                    try {
+                        const res = await fetch(`${API_BASE}/auth/login`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(loginForm.value)
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            loginResult.value = { success: true, message: 'Login Successful! Welcome ' + data.name };
+                            notify('Welcome back!');
+                        } else {
+                            loginResult.value = { success: false, message: data.detail || 'Authentication failed' };
+                        }
+                    } catch (e) {
+                        loginResult.value = { success: false, message: 'Network error' };
+                    }
+                };
+
+                const createUser = async () => {
+                    try {
+                        const res = await fetch(`${API_BASE}/users`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(userForm.value)
+                        });
+                        if (res.ok) {
+                            notify('User created!');
+                            userForm.value = { name: '', email: '', password: '' };
+                            await fetchUsers();
+                        } else {
+                            const err = await res.json();
+                            notify(err.detail || 'Error', 'error');
+                        }
+                    } catch (e) { notify('Network error', 'error'); }
+                };
+
+                const openEditUser = (user) => {
+                    editUserForm.value = {
+                        id: user.id,
+                        name: user.name,
+                        email: user.email,
+                        groupIds: user.groups.map(g => g.id)
+                    };
+                    editUserOpen.value = true;
+                };
+
+                const updateUser = async () => {
+                    try {
+                        const res = await fetch(`${API_BASE}/users/${editUserForm.value.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                name: editUserForm.value.name,
+                                email: editUserForm.value.email,
+                                groupIds: editUserForm.value.groupIds
+                            })
+                        });
+                        if (res.ok) {
+                            notify('User updated!');
+                            editUserOpen.value = false;
+                            await fetchUsers();
+                        } else {
+                            const err = await res.json();
+                            notify(err.detail || 'Error', 'error');
+                        }
+                    } catch (e) { notify('Network error', 'error'); }
+                };
+
+                const deleteUser = async (id) => {
+                    if(!confirm('Delete?')) return;
+                    try {
+                        const res = await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE' });
+                        if (res.ok) {
+                            notify('User deleted!');
+                            await fetchUsers();
+                        }
+                    } catch (e) { notify('Network error', 'error'); }
+                };
+
+                const createGroup = async () => {
+                    try {
+                        const res = await fetch(`${API_BASE}/groups`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(groupForm.value)
+                        });
+                        if (res.ok) {
+                            notify('Group created!');
+                            groupForm.value = { name: '', description: '' };
+                            await fetchGroups();
+                        } else {
+                            const err = await res.json();
+                            notify(err.detail || 'Error', 'error');
+                        }
+                    } catch (e) { notify('Network error', 'error'); }
+                };
+
+                const deleteGroup = async (id) => {
+                    if(!confirm('Delete?')) return;
+                    try {
+                        const res = await fetch(`${API_BASE}/groups/${id}`, { method: 'DELETE' });
+                        if (res.ok) {
+                            notify('Group deleted!');
+                            await fetchGroups();
+                        }
+                    } catch (e) { notify('Network error', 'error'); }
+                };
+
+                onMounted(() => {
+                    testConnection();
+                    fetchUsers();
+                    fetchGroups();
+                });
+
+                return {
+                    users, groups, connectionStatus, notifications,
+                    userForm, groupForm, loginForm, loginResult,
+                    editUserOpen, editUserForm,
+                    testConnection, createUser, deleteUser, createGroup, deleteGroup, login, openEditUser, updateUser
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

@@ -22,6 +22,8 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  springdoc:
+    packages-to-scan: com.aissek.userservice.adapter.in.web
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -37,3 +39,16 @@ logging:
     com.aissek.userservice: DEBUG
     org.hibernate.sql: DEBUG
     org.hibernate.type.descriptor.sql: TRACE
+
+# ACTUATOR & MONITORING
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,prometheus,info,metrics"
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
