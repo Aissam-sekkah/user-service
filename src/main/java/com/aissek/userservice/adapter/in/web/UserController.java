@@ -33,7 +33,7 @@ public class UserController {
      */
     @PostMapping
     public ResponseEntity<UserResponse> create(@Valid @RequestBody CreateUserRequest request){
-        var user = userUseCase.createUser(request.name(), request.email(), request.password());
+        var user = userUseCase.createUser(request.name(), request.email(), request.password(), null);
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(user));
     }
 
@@ -62,7 +62,7 @@ public class UserController {
      */
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> update(@PathVariable String id, @Valid @RequestBody UpdateUserRequest request){
-        var user = userUseCase.updateUser(id, request.name(), request.email());
+        var user = userUseCase.updateUser(id, request.name(), request.email(), null);
         return ResponseEntity.status(HttpStatus.OK).body(mapper.toResponse(user));
     }
 

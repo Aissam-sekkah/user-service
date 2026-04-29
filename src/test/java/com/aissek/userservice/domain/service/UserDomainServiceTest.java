@@ -44,7 +44,7 @@ class UserDomainServiceTest {
         email = "ali@email.com";
         password = "password123";
         passwordHash = "$2a$10$hashedPassword";
-        user = new User("123", "ali", "ali@email.com", passwordHash, LocalDateTime.now());
+        user = new User("123", "ali", "ali@email.com", passwordHash, null, LocalDateTime.now());
     }
 
     @Test
@@ -56,7 +56,7 @@ class UserDomainServiceTest {
         when(userRepository.save(any(User.class))).thenReturn(user);
 
         // Act
-        User result = userDomainService.createUser(name, email, password);
+        User result = userDomainService.createUser(name, email, password, null);
 
         // Assert
         verify(userRepository, times(1) ).save(any(User.class));
@@ -72,7 +72,7 @@ class UserDomainServiceTest {
         // Arrange
         when(userRepository.existByEmail(anyString())).thenReturn(true);
         // Act && Assert
-        assertThatThrownBy(() -> userDomainService.createUser(name, email, password))
+        assertThatThrownBy(() -> userDomainService.createUser(name, email, password, null))
                 .isInstanceOf(UserDomainService.UserEmailAlreadyExistsException.class)
                 .hasMessageContaining("Email déjà utilisé" );
     }
