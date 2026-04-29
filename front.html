@@ -3,83 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test API | User Service</title>
+    <title>Admin Console | User Service</title>
     <style>
-        /* --- Premium Minimalist CSS --- */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 
         :root {
             --primary: #111827;
             --primary-hover: #374151;
-            --bg: #F9FAFB;
+            --bg: #F3F4F6;
             --card-bg: #FFFFFF;
             --text-main: #111827;
             --text-muted: #6B7280;
             --border: #E5E7EB;
             --success: #10B981;
             --error: #EF4444;
+            --accent: #3B82F6;
         }
 
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg);
             color: var(--text-main);
+            margin: 0;
+            padding: 0;
             display: flex;
             justify-content: center;
-            align-items: center;
             min-height: 100vh;
-            margin: 0;
-            padding: 20px;
         }
 
-        .container {
+        /* --- AUTH VIEW --- */
+        .auth-container {
             background-color: var(--card-bg);
             width: 100%;
-            max-width: 400px; /* Largeur par défaut pour login/register */
+            max-width: 400px;
             padding: 2.5rem;
             border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0,0,0,0.01);
-            transition: max-width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            align-self: center;
+            margin: 20px;
         }
 
-        /* On élargit le container quand on affiche le dashboard */
-        .container.dashboard-mode {
-            max-width: 650px;
+        /* --- DASHBOARD VIEW --- */
+        .dashboard-container {
+            display: none;
+            width: 100%;
+            max-width: 1100px;
+            margin: 2rem auto;
+            padding: 0 1rem;
         }
 
-        h2 { margin-top: 0; font-weight: 600; font-size: 1.5rem; text-align: center; margin-bottom: 0.5rem; }
-        p.subtitle { text-align: center; color: var(--text-muted); font-size: 0.875rem; margin-bottom: 2rem; }
-
-        .form-group { margin-bottom: 1.25rem; }
-        label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; }
-        
-        input {
-            width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border);
-            border-radius: 8px; font-size: 1rem; font-family: inherit;
-            box-sizing: border-box; transition: border-color 0.2s;
-        }
-        input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.1); }
-
-        button {
-            width: 100%; padding: 0.875rem; background-color: var(--primary); color: white;
-            border: none; border-radius: 8px; font-size: 1rem; font-weight: 500;
-            cursor: pointer; transition: background-color 0.2s; font-family: inherit;
-        }
-        button:hover { background-color: var(--primary-hover); }
-
-        .toggle-link { text-align: center; margin-top: 1.5rem; font-size: 0.875rem; color: var(--text-muted); }
-        .toggle-link span { color: var(--primary); font-weight: 500; cursor: pointer; }
-
-        .alert { padding: 0.75rem; border-radius: 8px; font-size: 0.875rem; margin-bottom: 1.5rem; text-align: center; display: none; }
-        .alert.success { background-color: #D1FAE5; color: #065F46; border: 1px solid #A7F3D0; }
-        .alert.error { background-color: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
-
-        /* Table Styling */
-        .table-container {
-            margin-top: 1.5rem;
-            border: 1px solid var(--border);
+        /* Connection Info Header */
+        .conn-info {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 1.5rem;
             border-radius: 12px;
-            overflow: hidden;
+            margin-bottom: 2rem;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .conn-row { display: flex; justify-content: space-between; align-items: center; }
+        .token-box { 
+            background: rgba(255,255,255,0.1); 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-family: monospace; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            white-space: nowrap; 
+            max-width: 300px;
+        }
+
+        /* Tabs Navigation */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Card & Table */
+        .card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
         }
 
         table {
@@ -88,197 +118,447 @@
             text-align: left;
             font-size: 0.9rem;
         }
+        th { padding: 12px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-weight: 600; }
+        td { padding: 12px; border-bottom: 1px solid var(--border); }
 
-        th {
-            background-color: #F9FAFB;
-            padding: 12px 16px;
-            font-weight: 600;
-            color: var(--text-muted);
-            border-bottom: 1px solid var(--border);
+        /* UI Elements */
+        h2 { margin: 0; font-weight: 600; }
+        .form-group { margin-bottom: 1.25rem; }
+        label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; }
+        input {
+            width: 100%; padding: 0.75rem; border: 1px solid var(--border);
+            border-radius: 8px; font-family: inherit; box-sizing: border-box;
+        }
+        button {
+            cursor: pointer; border: none; border-radius: 8px; font-family: inherit;
+            transition: opacity 0.2s;
+        }
+        .btn-primary { background: var(--primary); color: white; padding: 0.75rem 1.5rem; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+        .btn-danger { background: var(--error); color: white; padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+        button:hover { opacity: 0.8; }
+
+        .alert { 
+            padding: 0.75rem; border-radius: 8px; font-size: 0.875rem; 
+            margin-bottom: 1rem; text-align: center; display: none; 
+        }
+        .alert.success { background: #D1FAE5; color: #065F46; }
+        .alert.error { background: #FEE2E2; color: #991B1B; }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white; padding: 2rem; border-radius: 12px;
+            width: 100%; max-width: 450px;
         }
 
-        td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text-main); }
-        tr:last-child td { border-bottom: none; }
-        tr:hover { background-color: #F9FAFB; }
-
-        #register-view, #dashboard-view { display: none; }
+        .toggle-link { text-align: center; margin-top: 1.5rem; font-size: 0.875rem; color: var(--text-muted); }
+        .toggle-link span { color: var(--primary); font-weight: 500; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="main-container" class="container">
-    <div id="alert-box" class="alert"></div>
+    <div id="alert-box" class="alert" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; width: 300px;"></div>
 
-    <div id="login-view">
-        <h2>Welcome back</h2>
-        <p class="subtitle">Enter your details to sign in</p>
+    <!-- LOGIN VIEW -->
+    <div id="login-view" class="auth-container">
+        <h2 style="text-align:center">Admin Login</h2>
+        <p style="text-align:center; color:var(--text-muted); margin-bottom:2rem">User-Service Management</p>
         <form id="login-form">
             <div class="form-group">
-                <label for="login-email">Email</label>
-                <input type="email" id="login-email" required placeholder="name@example.com">
+                <label>Email</label>
+                <input type="email" id="login-email" required placeholder="admin@example.com">
             </div>
             <div class="form-group">
-                <label for="login-password">Password</label>
+                <label>Password</label>
                 <input type="password" id="login-password" required placeholder="••••••••">
             </div>
-            <button type="submit">Sign In</button>
+            <button type="submit" class="btn-primary" style="width:100%">Sign In</button>
         </form>
-        <div class="toggle-link">
-            Don't have an account? <span onclick="switchView('register-view')">Create one</span>
-        </div>
+        <div class="toggle-link">No account? <span onclick="switchView('register-view')">Register</span></div>
     </div>
 
-    <div id="register-view">
-        <h2>Create an account</h2>
-        <p class="subtitle">Set up your profile to get started</p>
+    <!-- REGISTER VIEW -->
+    <div id="register-view" class="auth-container" style="display:none">
+        <h2 style="text-align:center">Register</h2>
+        <p style="text-align:center; color:var(--text-muted); margin-bottom:2rem">Create admin account</p>
         <form id="register-form">
             <div class="form-group">
-                <label for="reg-name">Full Name</label>
-                <input type="text" id="reg-name" required placeholder="John Doe">
+                <label>Full Name</label>
+                <input type="text" id="reg-name" required>
             </div>
             <div class="form-group">
-                <label for="reg-email">Email</label>
-                <input type="email" id="reg-email" required placeholder="name@example.com">
+                <label>Email</label>
+                <input type="email" id="reg-email" required>
             </div>
             <div class="form-group">
-                <label for="reg-password">Password</label>
-                <input type="password" id="reg-password" required minlength="8" placeholder="At least 8 characters">
+                <label>Password</label>
+                <input type="password" id="reg-password" required minlength="8">
             </div>
-            <button type="submit">Create Account</button>
+            <button type="submit" class="btn-primary" style="width:100%">Create Account</button>
         </form>
-        <div class="toggle-link">
-            Already have an account? <span onclick="switchView('login-view')">Sign in</span>
-        </div>
+        <div class="toggle-link">Have an account? <span onclick="switchView('login-view')">Sign In</span></div>
     </div>
 
-    <div id="dashboard-view">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-            <h2 style="text-align: left; margin: 0;">User List</h2>
-            <button onclick="logout()" style="width: auto; padding: 0.5rem 1rem; background-color: var(--text-muted); font-size: 0.8rem;">Log Out</button>
+    <!-- DASHBOARD VIEW -->
+    <div id="dashboard-view" class="dashboard-container">
+        <div class="conn-info">
+            <div class="conn-row">
+                <strong>Connection Status:</strong> 
+                <span style="color:var(--success)">● Authenticated</span>
+            </div>
+            <div class="conn-row">
+                <span>Access Token:</span>
+                <span id="disp-access" class="token-box">...</span>
+            </div>
+            <div class="conn-row">
+                <span>Refresh Token:</span>
+                <span id="disp-refresh" class="token-box">...</span>
+            </div>
+            <div class="conn-row" style="justify-content: flex-end; margin-top: 10px;">
+                <button onclick="logout()" class="btn-danger" style="padding: 4px 12px; font-size: 0.7rem;">Log Out</button>
+            </div>
         </div>
-        <p class="subtitle" style="text-align: left; margin-bottom: 1rem;">Data fetched from /api/v1/users</p>
-        
-        <div class="table-container">
-            <table>
+
+        <div class="tabs">
+            <div id="tab-users" class="tab active" onclick="switchTab('users')">Users Management</div>
+            <div id="tab-groups" class="tab" onclick="switchTab('groups')">Groups Management</div>
+        </div>
+
+        <!-- Users Section -->
+        <div id="section-users" class="card">
+            <div class="card-header">
+                <h2>Users</h2>
+                <button onclick="openUserModal()" class="btn-primary">+ Add User</button>
+            </div>
+            <table id="user-table">
                 <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                    </tr>
+                    <tr><th>Name</th><th>Email</th><th>Actions</th></tr>
                 </thead>
-                <tbody id="user-table-body">
-                    </tbody>
+                <tbody id="user-body"></tbody>
+            </table>
+        </div>
+
+        <!-- Groups Section -->
+        <div id="section-groups" class="card" style="display:none">
+            <div class="card-header">
+                <h2>Groups</h2>
+                <button onclick="openGroupModal()" class="btn-primary">+ Add Group</button>
+            </div>
+            <table id="group-table">
+                <thead>
+                    <tr><th>Name</th><th>Description</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="group-body"></tbody>
             </table>
         </div>
     </div>
-</div>
+
+    <!-- User Modal -->
+    <div id="user-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="user-modal-title">Add User</h3>
+            <form id="user-form">
+                <input type="hidden" id="user-id">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="user-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="user-email" required>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end">
+                    <button type="button" onclick="closeModal('user-modal')" class="btn-outline">Cancel</button>
+                    <button type="submit" class="btn-primary">Save User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Group Modal -->
+    <div id="group-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="group-modal-title">Add Group</h3>
+            <form id="group-form">
+                <input type="hidden" id="group-id">
+                <div class="form-group">
+                    <label>Group Name</label>
+                    <input type="text" id="group-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="group-desc" required>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end">
+                    <button type="button" onclick="closeModal('group-modal')" class="btn-outline">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
 <script>
-    // --- CONFIGURATION ---
-    const API_BASE_URL = 'http://localhost:8080/api/v1/users';
-    const AUTH_BASE_URL = "http://localhost:8080/api/v1/auth";
+    const API_BASE = 'http://localhost:8080/api/v1';
+    const AUTH_URL = `${API_BASE}/auth`;
 
-    const mainContainer = document.getElementById('main-container');
-    const loginView = document.getElementById('login-view');
-    const registerView = document.getElementById('register-view');
-    const dashboardView = document.getElementById('dashboard-view');
-    const alertBox = document.getElementById('alert-box');
-    const userTableBody = document.getElementById('user-table-body');
+    // State
+    let tokens = {
+        access: localStorage.getItem('accessToken'),
+        refresh: localStorage.getItem('refreshToken')
+    };
 
-    // --- Navigation ---
-    function switchView(viewId) {
-        loginView.style.display = 'none';
-        registerView.style.display = 'none';
-        dashboardView.style.display = 'none';
+    // --- UTILS ---
+    function showAlert(msg, success = true) {
+        const box = document.getElementById('alert-box');
+        box.textContent = msg;
+        box.className = `alert ${success ? 'success' : 'error'}`;
+        box.style.display = 'block';
+        setTimeout(() => box.style.display = 'none', 3000);
+    }
+
+    function switchView(view) {
+        document.getElementById('login-view').style.display = view === 'login-view' ? 'block' : 'none';
+        document.getElementById('register-view').style.display = view === 'register-view' ? 'block' : 'none';
+        document.getElementById('dashboard-view').style.display = view === 'dashboard-view' ? 'block' : 'none';
+    }
+
+    function switchTab(tab) {
+        document.getElementById('tab-users').classList.toggle('active', tab === 'users');
+        document.getElementById('tab-groups').classList.toggle('active', tab === 'groups');
+        document.getElementById('section-users').style.display = tab === 'users' ? 'block' : 'none';
+        document.getElementById('section-groups').style.display = tab === 'groups' ? 'block' : 'none';
+        if(tab === 'users') loadUsers(); else loadGroups();
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    // --- SECURE FETCH ---
+    async function secureFetch(url, options = {}) {
+        if (!options.headers) options.headers = {};
         
-        if (viewId === 'dashboard-view') {
-            mainContainer.classList.add('dashboard-mode');
-        } else {
-            mainContainer.classList.remove('dashboard-mode');
+        // ONLY add authorization header if token exists to avoid "Bearer null"
+        if (tokens.access) {
+            options.headers['Authorization'] = `Bearer ${tokens.access}`;
         }
-        
-        document.getElementById(viewId).style.display = 'block';
-        hideAlert();
-    }
 
-    function showAlert(message, isSuccess = true) {
-        alertBox.textContent = message;
-        alertBox.className = 'alert ' + (isSuccess ? 'success' : 'error');
-        alertBox.style.display = 'block';
-    }
+        let response = await fetch(url, options);
 
-    function hideAlert() { alertBox.style.display = 'none'; }
-
-    // --- FETCH ALL USERS ---
-    async function loadUsers() {
-        userTableBody.innerHTML = '<tr><td colspan="2" style="text-align:center;">Loading...</td></tr>';
-        try {
-            const response = await fetch(API_BASE_URL); // GET Request
-            if (!response.ok) throw new Error('Failed to load users');
-            
-            const users = await response.json();
-            
-            userTableBody.innerHTML = ''; // Clear loading
-            users.forEach(user => {
-                const row = `<tr>
-                    <td>${user.name}</td>
-                    <td>${user.email}</td>
-                </tr>`;
-                userTableBody.insertAdjacentHTML('beforeend', row);
-            });
-        } catch (error) {
-            userTableBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color: var(--error);">Error: ${error.message}</td></tr>`;
-        }
-    }
-
-    // --- Actions ---
-    document.getElementById('register-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('reg-name').value;
-        const email = document.getElementById('reg-email').value;
-        const password = document.getElementById('reg-password').value;
-
-        try {
-            const response = await fetch(API_BASE_URL, {
+        if (response.status === 401 && tokens.refresh) {
+            console.log("Access token expired. Attempting refresh...");
+            const refreshRes = await fetch(`${AUTH_URL}/refresh`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password })
+                body: JSON.stringify({ refreshToken: tokens.refresh })
             });
-            if (!response.ok) throw new Error('Registration failed');
 
-            switchView('login-view');
-            showAlert('Account created! Please log in.', true);
-        } catch (error) {
-            showAlert(error.message, false);
+            if (refreshRes.ok) {
+                const data = await refreshRes.json();
+                tokens.access = data.accessToken;
+                tokens.refresh = data.refreshToken;
+                localStorage.setItem('accessToken', tokens.access);
+                localStorage.setItem('refreshToken', tokens.refresh);
+                updateConnInfo();
+                
+                if (!options.headers) options.headers = {};
+                options.headers['Authorization'] = `Bearer ${tokens.access}`;
+                return await fetch(url, options);
+            } else {
+                logout();
+                throw new Error("Session expired. Please login again.");
+            }
         }
-    });
+        return response;
+    }
 
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
+    function updateConnInfo() {
+        document.getElementById('disp-access').textContent = tokens.access || 'None';
+        document.getElementById('disp-refresh').textContent = tokens.refresh || 'None';
+    }
+
+    // --- AUTH LOGIC ---
+    document.getElementById('login-form').onsubmit = async (e) => {
         e.preventDefault();
         const email = document.getElementById('login-email').value;
         const password = document.getElementById('login-password').value;
-
         try {
-            const response = await fetch(`${AUTH_BASE_URL}/login`, {
+            const res = await fetch(`${AUTH_URL}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             });
+            if (!res.ok) throw new Error("Auth failed");
+            const data = await res.json();
+            tokens.access = data.accessToken;
+            tokens.refresh = data.refreshToken;
+            localStorage.setItem('accessToken', tokens.access);
+            localStorage.setItem('refreshToken', tokens.refresh);
             
-            if (!response.ok) throw new Error('Invalid credentials');
-
-            // Success!
+            updateConnInfo();
             switchView('dashboard-view');
-            loadUsers(); // On charge la liste direct après le login
-        } catch (error) {
-            showAlert(error.message, false);
-        }
-    });
+            loadUsers();
+        } catch (e) { showAlert(e.message, false); }
+    };
+
+    document.getElementById('register-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('reg-name').value;
+        const email = document.getElementById('reg-email').value;
+        const password = document.getElementById('reg-password').value;
+        try {
+            const res = await fetch(`${API_BASE}/users`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password })
+            });
+            if (!res.ok) throw new Error("Registration failed");
+            showAlert("Account created!", true);
+            switchView('login-view');
+        } catch (e) { showAlert(e.message, false); }
+    };
 
     function logout() {
+        localStorage.clear();
+        tokens = { access: null, refresh: null };
+        updateConnInfo();
         switchView('login-view');
-        showAlert('Logged out.', true);
     }
+
+    // --- USER MANAGEMENT ---
+    async function loadUsers() {
+        const res = await secureFetch(`${API_BASE}/users`);
+        if (!res.ok) return;
+        const users = await res.json();
+        const body = document.getElementById('user-body');
+        body.innerHTML = users.map(u => `
+            <tr>
+                <td>${u.name}</td>
+                <td>${u.email}</td>
+                <td>
+                    <button onclick="openUserModal('${u.id}', '${u.name}', '${u.email}')" class="btn-outline">Edit</button>
+                    <button onclick="deleteUser('${u.id}')" class="btn-danger">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function openUserModal(id='', name='', email='') {
+        document.getElementById('user-id').value = id;
+        document.getElementById('user-name').value = name;
+        document.getElementById('user-email').value = email;
+        document.getElementById('user-modal-title').textContent = id ? 'Edit User' : 'Add User';
+        document.getElementById('user-modal').style.display = 'flex';
+    }
+
+    document.getElementById('user-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('user-id').value;
+        const payload = {
+            name: document.getElementById('user-name').value,
+            email: document.getElementById('user-email').value
+        };
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${API_BASE}/users/${id}` : `${API_BASE}/users`;
+
+        try {
+            const res = await secureFetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error("Save failed");
+            showAlert("User saved!", true);
+            closeModal('user-modal');
+            loadUsers();
+        } catch (e) { showAlert(e.message, false); }
+    };
+
+    async function deleteUser(id) {
+        if (!confirm("Delete this user?")) return;
+        try {
+            const res = await secureFetch(`${API_BASE}/users/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error("Delete failed");
+            showAlert("User deleted", true);
+            loadUsers();
+        } catch (e) { showAlert(e.message, false); }
+    }
+
+    // --- GROUP MANAGEMENT ---
+    async function loadGroups() {
+        const res = await secureFetch(`${API_BASE}/groups`);
+        if (!res.ok) return;
+        const groups = await res.json();
+        const body = document.getElementById('group-body');
+        body.innerHTML = groups.map(g => `
+            <tr>
+                <td>${g.name}</td>
+                <td>${g.description}</td>
+                <td>
+                    <button onclick="openGroupModal('${g.id}', '${g.name}', '${g.description}')" class="btn-outline">Edit</button>
+                    <button onclick="deleteGroup('${g.id}')" class="btn-danger">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function openGroupModal(id='', name='', desc='') {
+        document.getElementById('group-id').value = id;
+        document.getElementById('group-name').value = name;
+        document.getElementById('group-desc').value = desc;
+        document.getElementById('group-modal-title').textContent = id ? 'Edit Group' : 'Add Group';
+        document.getElementById('group-modal').style.display = 'flex';
+    }
+
+    document.getElementById('group-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('group-id').value;
+        const payload = {
+            name: document.getElementById('group-name').value,
+            description: document.getElementById('group-desc').value
+        };
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${API_BASE}/groups/${id}` : `${API_BASE}/groups`;
+
+        try {
+            const res = await secureFetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error("Save failed");
+            showAlert("Group saved!", true);
+            closeModal('group-modal');
+            loadGroups();
+        } catch (e) { showAlert(e.message, false); }
+    };
+
+    async function deleteGroup(id) {
+        if (!confirm("Delete this group?")) return;
+        try {
+            const res = await secureFetch(`${API_BASE}/groups/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error("Delete failed");
+            showAlert("Group deleted", true);
+            loadGroups();
+        } catch (e) { showAlert(e.message, false); }
+    }
+
+    // --- INIT ---
+    window.onload = () => {
+        if (tokens.access) {
+            updateConnInfo();
+            switchView('dashboard-view');
+            loadUsers();
+        } else {
+            switchView('login-view');
+        }
+    };
 </script>
 
 </body>

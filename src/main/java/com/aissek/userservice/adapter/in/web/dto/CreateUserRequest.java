@@ -15,6 +15,7 @@ public record CreateUserRequest(
         String email,
         @NotBlank(message = "password must not be blank")
         @Size(min = 8, message = "password must be at least 8 characters")
-        String password
+        String password,
+        java.util.Set<String> groupIds
 ) {
 }

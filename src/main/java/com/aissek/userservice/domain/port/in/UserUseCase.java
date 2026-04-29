@@ -19,5 +19,7 @@ public interface UserUseCase {
     User        updateUser(String id, String name, String email, Set<Group> groups);
     void        changePassword(String id, String currentPassword, String newPassword);
     void        deleteUser(String id);
+    void        updateRefreshToken(String id, String refreshToken);
+    User        refreshAccessToken(String refreshToken);
 
 }
