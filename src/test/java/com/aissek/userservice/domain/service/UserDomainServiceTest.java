@@ -1,5 +1,6 @@
 package com.aissek.userservice.domain.service;
 
+import com.aissek.userservice.domain.exception.*;
 import com.aissek.userservice.domain.model.User;
 import com.aissek.userservice.domain.port.out.PasswordHasherPort;
 import com.aissek.userservice.domain.port.out.UserRepositoryPort;
@@ -42,9 +43,9 @@ class UserDomainServiceTest {
     void setUp(){
         name = "ali";
         email = "ali@email.com";
-        password = "password123";
+        password = "Password123!";
         passwordHash = "$2a$10$hashedPassword";
-        user = new User("123", "ali", "ali@email.com", passwordHash, LocalDateTime.now());
+        user = new User("123", "ali", "ali@email.com", passwordHash, null, LocalDateTime.now());
     }
 
     @Test
@@ -56,7 +57,7 @@ class UserDomainServiceTest {
         when(userRepository.save(any(User.class))).thenReturn(user);
 
         // Act
-        User result = userDomainService.createUser(name, email, password);
+        User result = userDomainService.createUser(name, email, password, null);
 
         // Assert
         verify(userRepository, times(1) ).save(any(User.class));
@@ -72,15 +73,15 @@ class UserDomainServiceTest {
         // Arrange
         when(userRepository.existByEmail(anyString())).thenReturn(true);
         // Act && Assert
-        assertThatThrownBy(() -> userDomainService.createUser(name, email, password))
-                .isInstanceOf(UserDomainService.UserEmailAlreadyExistsException.class)
+        assertThatThrownBy(() -> userDomainService.createUser(name, email, password, null))
+                .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Email déjà utilisé" );
     }
 
     @Test
     @DisplayName("Test de changement de mot de passe")
     void shouldChangePasswordSuccessfully() {
-        String newPassword = "newPassword123";
+        String newPassword = "NewPassword123!";
         String newPasswordHash = "$2a$10$newHashedPassword";
 
         when(userRepository.findById("123")).thenReturn(java.util.Optional.of(user));
@@ -102,7 +103,7 @@ class UserDomainServiceTest {
         when(passwordHasherPort.matches("wrong-password", passwordHash)).thenReturn(false);
 
         assertThatThrownBy(() -> userDomainService.changePassword("123", "wrong-password", "newPassword123"))
-                .isInstanceOf(UserDomainService.InvalidPasswordException.class)
+                .isInstanceOf(InvalidDomainStateException.class)
                 .hasMessageContaining("Mot de passe actuel invalide");
     }
 
@@ -126,7 +127,7 @@ class UserDomainServiceTest {
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userDomainService.login(email, password))
-                .isInstanceOf(UserDomainService.AuthenticationFailedException.class)
+                .isInstanceOf(AuthenticationException.class)
                 .hasMessageContaining("Email ou mot de passe invalide");
     }
 
@@ -137,7 +138,7 @@ class UserDomainServiceTest {
         when(passwordHasherPort.matches("wrong-password", passwordHash)).thenReturn(false);
 
         assertThatThrownBy(() -> userDomainService.login(email, "wrong-password"))
-                .isInstanceOf(UserDomainService.AuthenticationFailedException.class)
+                .isInstanceOf(AuthenticationException.class)
                 .hasMessageContaining("Email ou mot de passe invalide");
     }
 }

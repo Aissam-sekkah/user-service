@@ -1,4 +1,5 @@
-HELP.md
+# This is a sample .gitignore file. It contains common files that are typically ignored in a Spring Boot project.
+# ... (rest of the file)
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
