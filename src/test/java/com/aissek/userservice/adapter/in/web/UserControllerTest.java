@@ -366,9 +366,9 @@ class UserControllerTest {
                         .content("""
                                 {"currentPassword":"wrongPassword","newPassword":"newPassword123"}
                                 """))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.detail").value("Mot de passe actuel invalide"))
-                .andExpect(jsonPath("$.status").value(400));
+                .andExpect(jsonPath("$.status").value(422));
     }
 
     @Test

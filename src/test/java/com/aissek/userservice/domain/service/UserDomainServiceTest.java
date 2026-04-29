@@ -1,5 +1,6 @@
 package com.aissek.userservice.domain.service;
 
+import com.aissek.userservice.domain.exception.*;
 import com.aissek.userservice.domain.model.User;
 import com.aissek.userservice.domain.port.out.PasswordHasherPort;
 import com.aissek.userservice.domain.port.out.UserRepositoryPort;
@@ -73,7 +74,7 @@ class UserDomainServiceTest {
         when(userRepository.existByEmail(anyString())).thenReturn(true);
         // Act && Assert
         assertThatThrownBy(() -> userDomainService.createUser(name, email, password, null))
-                .isInstanceOf(UserDomainService.UserEmailAlreadyExistsException.class)
+                .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Email déjà utilisé" );
     }
 
@@ -102,7 +103,7 @@ class UserDomainServiceTest {
         when(passwordHasherPort.matches("wrong-password", passwordHash)).thenReturn(false);
 
         assertThatThrownBy(() -> userDomainService.changePassword("123", "wrong-password", "newPassword123"))
-                .isInstanceOf(UserDomainService.InvalidPasswordException.class)
+                .isInstanceOf(InvalidDomainStateException.class)
                 .hasMessageContaining("Mot de passe actuel invalide");
     }
 
@@ -126,7 +127,7 @@ class UserDomainServiceTest {
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userDomainService.login(email, password))
-                .isInstanceOf(UserDomainService.AuthenticationFailedException.class)
+                .isInstanceOf(AuthenticationException.class)
                 .hasMessageContaining("Email ou mot de passe invalide");
     }
 
@@ -137,7 +138,7 @@ class UserDomainServiceTest {
         when(passwordHasherPort.matches("wrong-password", passwordHash)).thenReturn(false);
 
         assertThatThrownBy(() -> userDomainService.login(email, "wrong-password"))
-                .isInstanceOf(UserDomainService.AuthenticationFailedException.class)
+                .isInstanceOf(AuthenticationException.class)
                 .hasMessageContaining("Email ou mot de passe invalide");
     }
 }
