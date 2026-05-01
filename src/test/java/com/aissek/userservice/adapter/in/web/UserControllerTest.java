@@ -58,6 +58,7 @@ class UserControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
     void shouldCreateUser() throws Exception {
         mockMvc.perform(post(BASE_URL)
                         .contentType(APPLICATION_JSON)
@@ -145,6 +146,7 @@ class UserControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(roles = "USER")
     void shouldReturnUserById() throws Exception {
         mockMvc.perform(get(BASE_URL + "/" + existingUser.getId()))
                 .andExpect(status().isOk())
@@ -155,6 +157,7 @@ class UserControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(roles = "USER")
     void shouldReturnAllUsers() throws Exception {
         adapter.save(new User("Sara", "sara@gmail.com", passwordEncoder.encode("password456"), null));
 
@@ -167,6 +170,7 @@ class UserControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(roles = "MANAGER")
     void shouldUpdateUser() throws Exception {
         mockMvc.perform(put(BASE_URL + "/" + existingUser.getId())
                         .contentType(APPLICATION_JSON)
@@ -182,6 +186,7 @@ class UserControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
     void shouldDeleteUser() throws Exception {
         mockMvc.perform(delete(BASE_URL + "/" + existingUser.getId()))
                 .andExpect(status().isNoContent());
@@ -189,6 +194,7 @@ class UserControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
     void shouldReturnNotFoundWhenDeletingUserDoesNotExist() throws Exception {
         mockMvc.perform(delete(BASE_URL + "/missing-id"))
                 .andExpect(status().isNotFound())
@@ -197,6 +203,7 @@ class UserControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
     void shouldReturnConflictWhenEmailAlreadyExists() throws Exception {
         mockMvc.perform(post(BASE_URL)
                         .contentType(APPLICATION_JSON)
@@ -305,6 +312,7 @@ class UserControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(roles = "MANAGER")
     void shouldReturnNotFoundWhenUpdatingUserDoesNotExist() throws Exception {
         mockMvc.perform(put(BASE_URL + "/missing-id")
                         .contentType(APPLICATION_JSON)
@@ -317,6 +325,7 @@ class UserControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(roles = "USER")
     void shouldChangePassword() throws Exception {
         mockMvc.perform(put(BASE_URL + "/" + existingUser.getId() + "/password")
                         .contentType(APPLICATION_JSON)
@@ -331,6 +340,7 @@ class UserControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(roles = "USER")
     void shouldLoginWithNewPasswordOnlyAfterPasswordChange() throws Exception {
         mockMvc.perform(put(BASE_URL + "/" + existingUser.getId() + "/password")
                         .contentType(APPLICATION_JSON)
@@ -407,6 +417,7 @@ class UserControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(roles = "USER")
     void shouldReturnNotFoundWhenUserDoesNotExist() throws Exception {
         mockMvc.perform(get(BASE_URL + "/missing-id"))
                 .andExpect(status().isNotFound())

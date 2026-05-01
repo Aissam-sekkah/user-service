@@ -51,6 +51,14 @@ public class UserEntity {
     )
     private Set<GroupEntity> groups = new HashSet<GroupEntity>();
 
+    @ManyToMany
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<RoleEntity> directRoles = new HashSet<RoleEntity>();
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

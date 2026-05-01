@@ -111,6 +111,7 @@ class SecurityIntegrationTest {
         String token = jwtService.generateToken(email);
         
         User dummyUser = new User("Test", email, "hashed_pw", Set.of());
+        dummyUser.assignDirectRoles(Set.of(new com.aissek.userservice.domain.model.Role("role-user", "ROLE_USER", "Standard User Role")));
         when(userRepositoryPort.findByEmail(email)).thenReturn(Optional.of(dummyUser));
         
         mockMvc.perform(get("/api/v1/users")
