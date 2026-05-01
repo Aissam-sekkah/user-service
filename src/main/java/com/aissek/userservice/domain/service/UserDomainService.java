@@ -8,12 +8,14 @@ import com.aissek.userservice.domain.port.in.UserUseCase;
 import com.aissek.userservice.domain.port.out.GroupRepositoryPort;
 import com.aissek.userservice.domain.port.out.PasswordHasherPort;
 import com.aissek.userservice.domain.port.out.UserRepositoryPort;
-import com.aissek.userservice.adapter.out.security.JwtService;
+import com.aissek.userservice.domain.port.out.TokenServicePort;
 import com.aissek.userservice.config.AuditConfig.AuditEventType;
 import com.aissek.userservice.config.AuditConfig.AuditLogger;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -28,16 +30,17 @@ public class UserDomainService implements UserUseCase {
     private final UserRepositoryPort userRepository;
     private final PasswordHasherPort passwordHasher;
     private final GroupRepositoryPort groupRepository;
-    private final JwtService jwtService;
+    private final TokenServicePort tokenService;
     private final AuditLogger auditLogger;
 
-    public UserDomainService(UserRepositoryPort userRepository, PasswordHasherPort passwordHasher, GroupRepositoryPort groupRepository, JwtService jwtService, AuditLogger auditLogger){
+    public UserDomainService(UserRepositoryPort userRepository, PasswordHasherPort passwordHasher, GroupRepositoryPort groupRepository, TokenServicePort tokenService, AuditLogger auditLogger){
         this.userRepository = userRepository;
         this.passwordHasher = passwordHasher;
         this.groupRepository = groupRepository;
-        this.jwtService = jwtService;
+        this.tokenService = tokenService;
         this.auditLogger = auditLogger;
     }
+
 
     @Override
     @Transactional
@@ -163,7 +166,7 @@ public class UserDomainService implements UserUseCase {
         // Step 1: Validate JWT signature and expiration FIRST
         String email;
         try {
-            email = jwtService.extractUsername(refreshToken);
+            email = tokenService.extractUsername(refreshToken);
         } catch (IllegalArgumentException e) {
             log.warn("Refresh token JWT validation failed: {}", e.getMessage());
             auditLogger.logAuditEvent(AuditEventType.TOKEN_REFRESH_FAILURE, null, null, 
@@ -172,12 +175,13 @@ public class UserDomainService implements UserUseCase {
         }
         
         // Step 2: Verify the JWT is valid for this username
-        if (!jwtService.isTokenValid(refreshToken, email)) {
+        if (!tokenService.isTokenValid(refreshToken, email)) {
             log.warn("Refresh token is invalid or expired for user: {}", email);
             auditLogger.logAuditEvent(AuditEventType.TOKEN_REFRESH_FAILURE, null, email, 
                     false, "Token invalid or expired");
             throw new AuthenticationException("Invalid or expired refresh token");
         }
+
         
         // Step 3: Verify token hash exists in DB (check for revocation/match)
         User user = userRepository.findByEmail(email)

@@ -24,6 +24,14 @@ public class GroupEntity {
 
     private String description;
 
+    @ManyToMany
+    @JoinTable(
+            name = "group_roles",
+            joinColumns = @JoinColumn(name = "group_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private java.util.Set<RoleEntity> roles = new java.util.HashSet<>();
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 }

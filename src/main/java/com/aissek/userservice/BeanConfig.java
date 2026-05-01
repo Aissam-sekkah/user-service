@@ -45,13 +45,18 @@ public class BeanConfig {
     }
 
     @Bean
+    public com.aissek.userservice.domain.port.in.RoleUseCase RoleUseCase(com.aissek.userservice.domain.port.out.RoleRepositoryPort roleRepositoryPort, UserRepositoryPort userRepositoryPort, GroupRepositoryPort groupRepositoryPort){
+        return new com.aissek.userservice.domain.service.RoleDomainService(roleRepositoryPort, userRepositoryPort, groupRepositoryPort);
+    }
+
+    @Bean
     @org.springframework.context.annotation.Profile("!test")
     CommandLineRunner initDatabase(
             UserJpaRepository repository,
             PasswordHasherPort passwordHasherPort,
+            UserPersistenceMapper mapper,
             ObjectProvider<Flyway> flywayProvider
     ) {
-        UserPersistenceMapper mapper = new UserPersistenceMapper();
         return args -> {
             flywayProvider.ifAvailable(Flyway::migrate);
             if (repository.count() == 0) {

@@ -24,9 +24,9 @@ public class UserSecurityDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Map domain groups to Spring Security authorities
-        return user.getGroups().stream()
-                .map(group -> new SimpleGrantedAuthority("ROLE_" + group.getName().toUpperCase()))
+        // Map effective roles (direct + group inherited) to Spring Security authorities
+        return user.getEffectiveRoles().stream()
+                .map(role -> new SimpleGrantedAuthority(role.getName()))
                 .collect(Collectors.toList());
     }
 

@@ -1,11 +1,11 @@
 package com.aissek.userservice.domain.service;
 
-import com.aissek.userservice.adapter.out.security.JwtService;
 import com.aissek.userservice.config.AuditConfig.AuditLogger;
 import com.aissek.userservice.domain.model.User;
 import com.aissek.userservice.domain.port.out.GroupRepositoryPort;
 import com.aissek.userservice.domain.port.out.PasswordHasherPort;
 import com.aissek.userservice.domain.port.out.UserRepositoryPort;
+import com.aissek.userservice.domain.port.out.TokenServicePort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,7 +21,7 @@ class UserDomainServiceTest {
     private UserRepositoryPort userRepository;
     private PasswordHasherPort passwordHasher;
     private GroupRepositoryPort groupRepository;
-    private JwtService jwtService;
+    private TokenServicePort tokenService;
     private AuditLogger auditLogger;
     private UserDomainService userDomainService;
 
@@ -30,9 +30,9 @@ class UserDomainServiceTest {
         userRepository = mock(UserRepositoryPort.class);
         passwordHasher = mock(PasswordHasherPort.class);
         groupRepository = mock(GroupRepositoryPort.class);
-        jwtService = mock(JwtService.class);
+        tokenService = mock(TokenServicePort.class);
         auditLogger = mock(AuditLogger.class);
-        userDomainService = new UserDomainService(userRepository, passwordHasher, groupRepository, jwtService, auditLogger);
+        userDomainService = new UserDomainService(userRepository, passwordHasher, groupRepository, tokenService, auditLogger);
     }
 
     @Test
@@ -56,8 +56,8 @@ class UserDomainServiceTest {
         String token = "valid-token";
         
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
-        when(jwtService.extractUsername(token)).thenReturn(user.getEmail());
-        when(jwtService.isTokenValid(token, user.getEmail())).thenReturn(true);
+        when(tokenService.extractUsername(token)).thenReturn(user.getEmail());
+        when(tokenService.isTokenValid(token, user.getEmail())).thenReturn(true);
         when(passwordHasher.matches(token, "hashed-token")).thenReturn(true);
 
         User result = userDomainService.refreshAccessToken(token);
@@ -70,7 +70,7 @@ class UserDomainServiceTest {
     @DisplayName("Should throw exception when refresh token is invalid")
     void shouldThrowExceptionWhenRefreshTokenInvalid() {
         String invalidToken = "invalid-token";
-        when(jwtService.extractUsername(invalidToken)).thenThrow(new IllegalArgumentException("Invalid JWT token"));
+        when(tokenService.extractUsername(invalidToken)).thenThrow(new IllegalArgumentException("Invalid JWT token"));
 
         assertThrows(com.aissek.userservice.domain.exception.AuthenticationException.class, 
             () -> userDomainService.refreshAccessToken(invalidToken));
@@ -80,8 +80,8 @@ class UserDomainServiceTest {
     @DisplayName("Should throw exception when JWT validation fails")
     void shouldThrowExceptionWhenJwtValidationFails() {
         String expiredToken = "expired-token";
-        when(jwtService.extractUsername(expiredToken)).thenReturn("test@example.com");
-        when(jwtService.isTokenValid(expiredToken, "test@example.com")).thenReturn(false);
+        when(tokenService.extractUsername(expiredToken)).thenReturn("test@example.com");
+        when(tokenService.isTokenValid(expiredToken, "test@example.com")).thenReturn(false);
 
         assertThrows(com.aissek.userservice.domain.exception.AuthenticationException.class, 
             () -> userDomainService.refreshAccessToken(expiredToken));
@@ -92,8 +92,8 @@ class UserDomainServiceTest {
     void shouldThrowExceptionWhenTokenNotFoundInDatabase() {
         String token = "valid-jwt-but-not-in-db";
         String email = "test@example.com";
-        when(jwtService.extractUsername(token)).thenReturn(email);
-        when(jwtService.isTokenValid(token, email)).thenReturn(true);
+        when(tokenService.extractUsername(token)).thenReturn(email);
+        when(tokenService.isTokenValid(token, email)).thenReturn(true);
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
         assertThrows(com.aissek.userservice.domain.exception.AuthenticationException.class, 

@@ -22,7 +22,7 @@ import jakarta.annotation.PostConstruct;
  */
 @Slf4j
 @Service
-public class JwtService {
+public class JwtService implements com.aissek.userservice.domain.port.out.TokenServicePort {
 
     @Value("${application.security.jwt.secret}")
     private String secretKey;
@@ -58,6 +58,19 @@ public class JwtService {
 
     public String generateToken(String username) {
         Map<String, Object> extraClaims = new HashMap<>();
+        // We'll handle roles outside this method or pass them in
+        return Jwts.builder()
+                .claims(extraClaims)
+                .subject(username)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public String generateToken(String username, java.util.Set<String> roles) {
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("roles", roles);
         return Jwts.builder()
                 .claims(extraClaims)
                 .subject(username)

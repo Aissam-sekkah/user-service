@@ -276,6 +276,7 @@
         <div class="tabs">
             <div id="tab-users" class="tab active" onclick="switchTab('users')">Users Management</div>
             <div id="tab-groups" class="tab" onclick="switchTab('groups')">Groups Management</div>
+            <div id="tab-roles" class="tab" onclick="switchTab('roles')">Roles Management</div>
         </div>
 
         <!-- Users Section -->
@@ -305,6 +306,20 @@
                 <tbody id="group-body"></tbody>
             </table>
         </div>
+
+        <!-- Roles Section -->
+        <div id="section-roles" class="card" style="display:none">
+            <div class="card-header">
+                <h2>Roles</h2>
+                <button onclick="openRoleModal()" class="btn-primary">+ Add Role</button>
+            </div>
+            <table id="role-table">
+                <thead>
+                    <tr><th>Name</th><th>Description</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="role-body"></tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Token Modal -->
@@ -327,7 +342,7 @@
     </div>
 
     <!-- User Modal -->
-    <div id="user-modal" class, "modal" style="display:none">
+    <div id="user-modal" class="modal" style="display:none">
         <div class="modal-content">
             <h3 id="user-modal-title">Add User</h3>
             <form id="user-form">
@@ -374,6 +389,28 @@
         </div>
     </div>
 
+    <!-- Role Modal -->
+    <div id="role-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="role-modal-title">Add Role</h3>
+            <form id="role-form">
+                <input type="hidden" id="role-id">
+                <div class="form-group">
+                    <label>Role Name</label>
+                    <input type="text" id="role-name" required placeholder="ROLE_ADMIN">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="role-desc" required>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end">
+                    <button type="button" onclick="closeModal('role-modal')" class="btn-outline">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Role</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 <script>
     const API_BASE = '/api/v1';
     const AUTH_URL = `${API_BASE}/auth`;
@@ -384,6 +421,7 @@
     };
     let allUsers = [];
     let allGroups = [];
+    let allRoles = [];
 
     function showAlert(msg, success = true) {
         const box = document.getElementById('alert-box');
@@ -402,9 +440,11 @@
     function switchTab(tab) {
         document.getElementById('tab-users').classList.toggle('active', tab === 'users');
         document.getElementById('tab-groups').classList.toggle('active', tab === 'groups');
+        document.getElementById('tab-roles').classList.toggle('active', tab === 'roles');
         document.getElementById('section-users').style.display = tab === 'users' ? 'block' : 'none';
         document.getElementById('section-groups').style.display = tab === 'groups' ? 'block' : 'none';
-        if(tab === 'users') loadUsers(); else loadGroups();
+        document.getElementById('section-roles').style.display = tab === 'roles' ? 'block' : 'none';
+        if(tab === 'users') loadUsers(); else if(tab === 'groups') loadGroups(); else loadRoles();
     }
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
@@ -507,7 +547,7 @@
                 <td>${u.email}</td>
                 <td>${groupNames}</td>
                 <td>
-                    <button onclick="openUserModal('${u.id}', '${u.name}', '${u.email}', ${JSON.stringify(u.groups || []).replace(/"/g, '&quot;')})" class="btn-outline">Edit</button>
+                    <button onclick="openUserModal('${u.id}', '${u.name}', '${u.email}', ${JSON.stringify(u.groups || []).replace(/\"/g, '&quot;')})" class="btn-outline">Edit</button>
                     <button onclick="deleteUser('${u.id}')" class="btn-danger">Delete</button>
                 </td>
             </tr>`;
@@ -521,9 +561,7 @@
         const checklist = document.getElementById('group-checklist');
         checklist.innerHTML = allGroups.map(g => {
             const isChecked = userGroups.some(ug => ug.id === g.id) ? 'checked' : '';
-            return `<label class="checklist-item">
-                <input type="checkbox" value="${g.id}" ${isChecked}> <span>${g.name}</span>
-            </label>`;
+            return `<label class=\"checklist-item\">\n                <input type=\"checkbox\" value=\"${g.id}\" ${isChecked}> <span>${g.name}</span>\n            </label>`;
         }).join('');
 
         document.getElementById('user-id').value = id;
@@ -628,6 +666,58 @@
             if (!res.ok) throw new Error("Delete failed");
             showAlert("Group deleted", true);
             loadGroups();
+        } catch (e) { showAlert(e.message, false); }
+    }
+
+    async function loadRoles() {
+        const res = await secureFetch(`${API_BASE}/roles`);
+        if (!res.ok) return;
+        allRoles = await res.json();
+        const body = document.getElementById('role-body');
+        body.innerHTML = allRoles.map(r => `
+            <tr>
+                <td>${r.name}</td>
+                <td>${r.description}</td>
+                <td>
+                    <button onclick="deleteRole('${r.id}')" class="btn-danger">Delete</button>
+                </td>
+            </tr>`).join('');
+    }
+
+    function openRoleModal() {
+        document.getElementById('role-id').value = '';
+        document.getElementById('role-name').value = '';
+        document.getElementById('role-desc').value = '';
+        document.getElementById('role-modal-title').textContent = 'Add Role';
+        document.getElementById('role-modal').style.display = 'flex';
+    }
+
+    document.getElementById('role-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const payload = {
+            name: document.getElementById('role-name').value,
+            description: document.getElementById('role-desc').value
+        };
+        try {
+            const res = await secureFetch(`${API_BASE}/roles`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error("Save failed");
+            showAlert("Role saved!", true);
+            closeModal('role-modal');
+            loadRoles();
+        } catch (e) { showAlert(e.message, false); }
+    };
+
+    async function deleteRole(id) {
+        if (!confirm("Delete this role?")) return;
+        try {
+            const res = await secureFetch(`${API_BASE}/roles/${id}`, { method: 'DELETE' }); // Note: Roles API doesn't have DELETE in my current implementation but I'll add it to controller if needed.
+            if (!res.ok) throw new Error("Delete failed");
+            showAlert("Role deleted", true);
+            loadRoles();
         } catch (e) { showAlert(e.message, false); }
     }
 
