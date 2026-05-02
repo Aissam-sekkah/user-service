@@ -1,6 +1,7 @@
 package com.aissek.userservice.domain.port.in;
 
 import com.aissek.userservice.domain.model.Group;
+import com.aissek.userservice.domain.model.Role;
 import com.aissek.userservice.domain.model.User;
 
 import java.util.List;
@@ -12,11 +13,11 @@ import java.util.Set;
  */
 public interface UserUseCase {
 
-    User        createUser(String name, String email, String password, Set<Group> groups);
+    User        createUser(String name, String email, String password, Set<Group> groups, Set<Role> roles);
     User        getUserById(String id);
     User        login(String email, String password);
     List<User>  getAllUsers();
-    User        updateUser(String id, String name, String email, Set<Group> groups);
+    User        updateUser(String id, String name, String email, Set<Group> groups, Set<Role> roles);
     void        changePassword(String id, String currentPassword, String newPassword);
     void        deleteUser(String id);
     void        updateRefreshToken(String id, String refreshToken);

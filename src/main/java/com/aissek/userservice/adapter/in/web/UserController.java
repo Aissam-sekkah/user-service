@@ -6,7 +6,9 @@ import com.aissek.userservice.adapter.in.web.dto.UpdateUserRequest;
 import com.aissek.userservice.adapter.in.web.dto.UserResponse;
 import com.aissek.userservice.adapter.in.web.mapper.UserWebMapper;
 import com.aissek.userservice.domain.model.Group;
+import com.aissek.userservice.domain.model.Role;
 import com.aissek.userservice.domain.port.in.GroupUseCase;
+import com.aissek.userservice.domain.port.in.RoleUseCase;
 import com.aissek.userservice.domain.port.in.UserUseCase;
 import jakarta.validation.Valid;
 import lombok.Getter;
@@ -35,6 +37,7 @@ public class UserController {
 
     private final UserUseCase userUseCase;
     private final GroupUseCase groupUseCase;
+    private final RoleUseCase roleUseCase;
     private final UserWebMapper mapper;
 
     /**
@@ -53,8 +56,15 @@ public class UserController {
                             .orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupId)))
                     .collect(Collectors.toSet());
         }
+
+        Set<Role> roles = null;
+        if (request.roleIds() != null) {
+            roles = request.roleIds().stream()
+                    .map(roleUseCase::getRoleById)
+                    .collect(Collectors.toSet());
+        }
         
-        var user = userUseCase.createUser(request.name(), request.email(), request.password(), groups);
+        var user = userUseCase.createUser(request.name(), request.email(), request.password(), groups, roles);
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(user));
     }
 
@@ -96,7 +106,14 @@ public class UserController {
                     .collect(Collectors.toSet());
         }
 
-        var user = userUseCase.updateUser(id, request.name(), request.email(), groups);
+        Set<Role> roles = null;
+        if (request.roleIds() != null) {
+            roles = request.roleIds().stream()
+                    .map(roleUseCase::getRoleById)
+                    .collect(Collectors.toSet());
+        }
+
+        var user = userUseCase.updateUser(id, request.name(), request.email(), groups, roles);
         return ResponseEntity.status(HttpStatus.OK).body(mapper.toResponse(user));
     }
 

@@ -243,7 +243,7 @@
     <!-- REGISTER VIEW -->
     <div id="register-view" class="auth-container" style="display:none">
         <h2 style="text-align:center">Register</h2>
-        <p style="text-align:center; color:var(--text-muted); margin-bottom:2rem">Create admin account</p>
+        <p style="text-align:center; color:var(--text-muted); margin-bottom:2rem">Create account</p>
         <form id="register-form">
             <div class="form-group">
                 <label>Full Name</label>
@@ -256,6 +256,14 @@
             <div class="form-group">
                 <label>Password</label>
                 <input type="password" id="reg-password" required minlength="8">
+            </div>
+            <div class="form-group">
+                <label>Requested Role</label>
+                <select id="reg-role" style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:8px; font-family:inherit;">
+                    <option value="ROLE_USER">User</option>
+                    <option value="ROLE_MANAGER">Manager</option>
+                    <option value="ROLE_ADMIN">Admin</option>
+                </select>
             </div>
             <button type="submit" class="btn-primary" style="width:100%">Create Account</button>
         </form>
@@ -356,8 +364,16 @@
                     <input type="email" id="user-email" required>
                 </div>
                 <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="user-password" required minlength="8">
+                </div>
+                <div class="form-group">
                     <label>Assign Groups</label>
                     <div id="group-checklist" class="checklist-group"></div>
+                </div>
+                <div class="form-group">
+                    <label>Assign Direct Roles</label>
+                    <div id="role-checklist" class="checklist-group"></div>
                 </div>
                 <div style="display:flex; gap:10px; justify-content:flex-end">
                     <button type="button" onclick="closeModal('user-modal')" class="btn-outline">Cancel</button>
@@ -515,11 +531,12 @@
         const name = document.getElementById('reg-name').value;
         const email = document.getElementById('reg-email').value;
         const password = document.getElementById('reg-password').value;
+        const role = document.getElementById('reg-role').value;
         try {
-            const res = await fetch(`${API_BASE}/users`, {
+            const res = await fetch(`${AUTH_URL}/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password })
+                body: JSON.stringify({ name, email, password, roleIds: [role] })
             });
             if (!res.ok) throw new Error("Registration failed");
             showAlert("Account created!", true);
@@ -564,6 +581,15 @@
             return `<label class=\"checklist-item\">\n                <input type=\"checkbox\" value=\"${g.id}\" ${isChecked}> <span>${g.name}</span>\n            </label>`;
         }).join('');
 
+        const rolesRes = await secureFetch(`${API_BASE}/roles`);
+        allRoles = rolesRes.ok ? await rolesRes.json() : [];
+        const roleChecklist = document.getElementById('role-checklist');
+        roleChecklist.innerHTML = allRoles.map(r => {
+            // Note: UserResponse needs to be updated to include roles for editing to work perfectly
+            // For now, we provide the list.
+            return `<label class=\"checklist-item\">\n                <input type=\"checkbox\" value=\"${r.id}\"> <span>${r.name}</span>\n            </label>`;
+        }).join('');
+
         document.getElementById('user-id').value = id;
         document.getElementById('user-name').value = name;
         document.getElementById('user-email').value = email;
@@ -575,11 +601,14 @@
         e.preventDefault();
         const id = document.getElementById('user-id').value;
         const selectedGroups = Array.from(document.querySelectorAll('#group-checklist input:checked')).map(i => i.value);
+        const selectedRoles = Array.from(document.querySelectorAll('#role-checklist input:checked')).map(i => i.value);
         
         const payload = {
             name: document.getElementById('user-name').value,
             email: document.getElementById('user-email').value,
-            groupIds: selectedGroups
+            password: document.getElementById('user-password').value,
+            groupIds: selectedGroups,
+            roleIds: selectedRoles
         };
         const method = id ? 'PUT' : 'POST';
         const url = id ? `${API_BASE}/users/${id}` : `${API_BASE}/users`;

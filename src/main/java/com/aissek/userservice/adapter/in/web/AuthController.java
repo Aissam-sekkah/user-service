@@ -1,9 +1,11 @@
 package com.aissek.userservice.adapter.in.web;
 
+import com.aissek.userservice.adapter.in.web.dto.CreateUserRequest;
 import com.aissek.userservice.adapter.in.web.dto.LoginRequest;
 import com.aissek.userservice.adapter.in.web.dto.TokenResponse;
 import com.aissek.userservice.adapter.in.web.dto.RefreshRequest;
 import com.aissek.userservice.adapter.out.security.JwtService;
+import com.aissek.userservice.domain.model.Role;
 import com.aissek.userservice.domain.port.in.UserUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +14,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Set;
 
 /**
  * HTTP entry point for authentication operations.
@@ -30,6 +34,22 @@ public class AuthController {
 
     @Value("${application.security.jwt.refresh-expiration:604800000}")
     private long refreshTokenExpiration;
+
+    /**
+     * Public registration. 
+     * Security: Public users are ALWAYS forced to ROLE_USER regardless of request.
+     */
+    @PostMapping("/register")
+    public ResponseEntity<Void> register(@Valid @RequestBody CreateUserRequest request) {
+        log.info("Public registration attempt for email: {}", request.email());
+        
+        // SECURITY GUARD: Public registrants cannot pick their own roles.
+        Set<Role> defaultRoles = Set.of(new Role("ROLE_USER", "ROLE_USER", "Standard User Role"));
+        
+        userUseCase.createUser(request.name(), request.email(), request.password(), null, defaultRoles);
+        
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
 
     /**
      * Authenticates a user and returns access and refresh tokens.

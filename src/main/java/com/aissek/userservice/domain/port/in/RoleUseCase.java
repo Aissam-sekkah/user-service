@@ -6,6 +6,7 @@ import java.util.List;
 public interface RoleUseCase {
     Role createRole(String name, String description);
     List<Role> getAllRoles();
+    Role getRoleById(String id);
     void assignRoleToUser(String userId, String roleId);
     void assignRoleToGroup(String groupId, String roleId);
     void removeRoleFromUser(String userId, String roleId);

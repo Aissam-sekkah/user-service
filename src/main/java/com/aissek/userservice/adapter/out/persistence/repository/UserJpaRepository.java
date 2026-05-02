@@ -13,6 +13,6 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, String> {
     
     boolean existsByEmail(String email);
 
-    @Query("SELECT u FROM UserEntity u LEFT JOIN FETCH u.groups WHERE u.email = :email")
+    @Query("SELECT u FROM UserEntity u LEFT JOIN FETCH u.groups g LEFT JOIN FETCH g.roles LEFT JOIN FETCH u.directRoles WHERE u.email = :email")
     Optional<UserEntity> findByEmail(@Param("email") String email);
 }
