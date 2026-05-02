@@ -2,6 +2,7 @@ package com.aissek.userservice.domain.service;
 
 import com.aissek.userservice.domain.exception.*;
 import com.aissek.userservice.domain.model.Group;
+import com.aissek.userservice.domain.model.Role;
 import com.aissek.userservice.domain.model.User;
 import com.aissek.userservice.domain.model.PasswordPolicy;
 import com.aissek.userservice.domain.port.in.UserUseCase;
@@ -44,7 +45,7 @@ public class UserDomainService implements UserUseCase {
 
     @Override
     @Transactional
-    public User createUser(String name, String email, String password, Set<Group> groups) {
+    public User createUser(String name, String email, String password, Set<Group> groups, Set<Role> roles) {
         log.info("Attempting to create new user with email: {}", email);
         new PasswordPolicy(password);
         
@@ -54,10 +55,13 @@ public class UserDomainService implements UserUseCase {
         }
 
         User user = new User(name, email, passwordHasher.hash(password), groups);
+        if (roles != null && !roles.isEmpty()) {
+            user.assignDirectRoles(roles);
+        }
         User savedUser = userRepository.save(user);
         log.info("User created successfully with ID: {}", savedUser.getId());
         auditLogger.logAuditEvent(AuditEventType.USER_CREATED, savedUser.getId(), email, 
-                true, "User created with " + (groups != null ? groups.size() : 0) + " groups");
+                true, "User created with " + (groups != null ? groups.size() : 0) + " groups and " + (roles != null ? roles.size() : 0) + " roles");
         return savedUser;
     }
 
@@ -110,10 +114,13 @@ public class UserDomainService implements UserUseCase {
 
     @Override
     @Transactional
-    public User updateUser(String id, String name, String email, Set<Group> groups) {
+    public User updateUser(String id, String name, String email, Set<Group> groups, Set<com.aissek.userservice.domain.model.Role> roles) {
         log.info("Updating profile for user ID: {}", id);
         User user = getUserById(id);
         user.updateProfile(name, email, groups);
+        if (roles != null) {
+            user.assignDirectRoles(roles);
+        }
         User updatedUser = userRepository.save(user);
         log.info("User profile updated successfully: ID {}", updatedUser.getId());
         return updatedUser;

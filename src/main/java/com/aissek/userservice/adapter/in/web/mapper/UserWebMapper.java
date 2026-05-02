@@ -19,6 +19,7 @@ public class UserWebMapper {
                 user.getName(),
                 user.getEmail(),
                 user.getCreatedAt(),
+                user.getEffectiveRoles().stream().map(role -> role.getName()).collect(Collectors.toSet()),
                 user.getGroups().stream().map(groupWebMapper::toResponse).collect(Collectors.toList())
         );
     }

@@ -45,6 +45,13 @@ public class RoleDomainService implements RoleUseCase {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Role getRoleById(String id) {
+        return roleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + id));
+    }
+
+    @Override
     public void assignRoleToUser(String userId, String roleId) {
         log.info("Assigning role {} to user {}", roleId, userId);
         User user = userRepository.findById(userId)

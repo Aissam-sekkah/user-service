@@ -26,7 +26,14 @@ public class UserSecurityDetails implements UserDetails {
     public Collection<? extends GrantedAuthority> getAuthorities() {
         // Map effective roles (direct + group inherited) to Spring Security authorities
         return user.getEffectiveRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName()))
+                .map(role -> {
+                    String roleName = role.getName();
+                    // Standardize: ensure role starts with ROLE_ for hasRole() to work
+                    if (!roleName.startsWith("ROLE_")) {
+                        roleName = "ROLE_" + roleName;
+                    }
+                    return new SimpleGrantedAuthority(roleName);
+                })
                 .collect(Collectors.toList());
     }
 

@@ -64,6 +64,6 @@ application:
     jwt:
       # ⚠️ CRITICAL: MUST be set as environment variable in production
       # Never commit secrets to version control
-      secret: ${JWT_SECRET:}
+      secret: ${JWT_SECRET:S8vP2qWzL5mR9xT1yU4iO7pA3sD6fG9hJ2kL5zX8cV1bN4mQ7wE0rT3yU6iI9oP2}
       expiration: ${JWT_EXPIRATION:3600000}             # 1 hour (access token)
       refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7 days (refresh token)
