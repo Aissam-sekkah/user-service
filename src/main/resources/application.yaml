@@ -12,7 +12,7 @@ spring:
     url: jdbc:postgresql://localhost:5432/userdb
     driver-class-name: org.postgresql.Driver
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD}
+    password: ${DB_PASSWORD:secret}
 
 # JPA Hibernate
   jpa:
@@ -22,8 +22,13 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   springdoc:
     packages-to-scan: com.aissek.userservice.adapter.in.web
+    swagger-ui:
+      path: /swagger-ui
+    api-docs:
+      path: /v3/api-docs
   flyway:
     enabled: true
     baseline-on-migrate: true
