@@ -21,7 +21,7 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
   springdoc:
     packages-to-scan: com.aissek.userservice.adapter.in.web
@@ -42,8 +42,8 @@ logging:
   level:
     root: info
     com.aissek.userservice: INFO
-    org.hibernate.sql: WARN
-    org.hibernate.type.descriptor.sql: WARN
+    org.hibernate.sql: INFO
+    org.hibernate.type.descriptor.sql: INFO
 
 # ACTUATOR & MONITORING
 management:
