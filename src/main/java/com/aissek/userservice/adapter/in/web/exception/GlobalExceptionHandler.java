@@ -39,8 +39,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException exception) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage()));
+        // If it's a JWT error, return 401, otherwise return 400
+        HttpStatus status = exception.getMessage().contains("JWT") ? HttpStatus.UNAUTHORIZED : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status)
+                .body(ProblemDetail.forStatusAndDetail(status, exception.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

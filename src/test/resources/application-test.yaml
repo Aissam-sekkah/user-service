@@ -13,3 +13,17 @@ spring:
         dialect: org.hibernate.dialect.H2Dialect
   flyway:
     enabled: false
+
+# Security Configuration for tests
+application:
+  security:
+    jwt:
+      secret: TestSecretKeyForUnitTestsMustBeAtLeast32CharactersLong
+      expiration: 3600000
+      refresh-expiration: 604800000
+
+# Logging for tests
+logging:
+  level:
+    root: WARN
+    com.aissek.userservice: DEBUG

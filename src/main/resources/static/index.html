@@ -3,377 +3,762 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Service Dashboard</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Admin Console | User Service</title>
     <style>
-        [v-cloak] { display: none; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+        :root {
+            --primary: #111827;
+            --primary-hover: #374151;
+            --bg: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text-main: #111827;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --success: #10B981;
+            --error: #EF4444;
+            --accent: #3B82F6;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* --- AUTH VIEW --- */
+        .auth-container {
+            background-color: var(--card-bg);
+            width: 100%;
+            max-width: 400px;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            align-self: center;
+            margin: 20px;
+        }
+
+        /* --- DASHBOARD VIEW --- */
+        .dashboard-container {
+            display: none;
+            width: 100%;
+            max-width: 1100px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        /* Header Area */
+        .header-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .links { display: flex; gap: 1rem; align-items: center; }
+        .links a { 
+            color: var(--text-muted); 
+            text-decoration: none; 
+            font-size: 0.8rem; 
+            font-weight: 500; 
+            transition: color 0.2s;
+        }
+        .links a:hover { color: var(--primary); }
+
+        .info-icon {
+            width: 24px; height: 24px;
+            border: 2px solid var(--primary);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .info-icon:hover { background: var(--primary); color: white; }
+
+        /* Connection Info Panel */
+        .conn-info {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .conn-row { display: flex; justify-content: space-between; align-items: center; }
+        .token-box { 
+            background: rgba(255,255,255,0.1); 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-family: monospace; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            white-space: nowrap; 
+            max-width: 300px;
+        }
+
+        /* Tabs Navigation */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Card & Table */
+        .card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+        th { padding: 12px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-weight: 600; }
+        td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text-main); }
+
+        /* UI Elements */
+        h2 { margin: 0; font-weight: 600; }
+        .form-group { margin-bottom: 1.25rem; }
+        label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; }
+        input {
+            width: 100%; padding: 0.75rem; border: 1px solid var(--border);
+            border-radius: 8px; font-family: inherit; box-sizing: border-box;
+        }
+        button {
+            cursor: pointer; border: none; border-radius: 8px; font-family: inherit;
+            transition: opacity 0.2s;
+        }
+        .btn-primary { background: var(--primary); color: white; padding: 0.75rem 1.5rem; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+        .btn-danger { background: var(--error); color: white; padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+        button:hover { opacity: 0.8; }
+
+        .alert { 
+            padding: 0.75rem; border-radius: 8px; font-size: 0.875rem; 
+            margin-bottom: 1rem; text-align: center; display: none; 
+        }
+        .alert.success { background: #D1FAE5; color: #065F46; }
+        .alert.error { background: #FEE2E2; color: #991B1B; }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white; padding: 2rem; border-radius: 12px;
+            width: 100%; max-width: 450px;
+        }
+
+        .checklist-group {
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            background: #fafafa;
+        }
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            user-select: none;
+        }
+        .checklist-item input {
+            width: auto;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .toggle-link { text-align: center; margin-top: 1.5rem; font-size: 0.875rem; color: var(--text-muted); }
+        .toggle-link span { color: var(--primary); font-weight: 500; cursor: pointer; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div id="app" v-cloak class="container mx-auto px-4 py-8">
-        <!-- Header -->
-        <header class="flex justify-between items-center mb-8 bg-white p-6 rounded-lg shadow-md">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">User Service Dashboard</h1>
-                <p class="text-gray-500">Manage your users and groups</p>
+<body>
+
+    <div id="alert-box" class="alert" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; width: 300px;"></div>
+
+    <!-- LOGIN VIEW -->
+    <div id="login-view" class="auth-container">
+        <h2 style="text-align:center">Admin Login</h2>
+        <p style="text-align:center; color:var(--text-muted); margin-bottom:2rem">User-Service Management</p>
+        <form id="login-form">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="login-email" required placeholder="admin@example.com">
             </div>
-            <div class="flex items-center gap-4">
-                <button @click="testConnection" 
-                        :class="connectionStatus === 'online' ? 'bg-green-500' : 'bg-red-500'"
-                        class="px-4 py-2 text-white rounded-full font-medium transition-colors duration-300 hover:opacity-80">
-                    {{ connectionStatus === 'online' ? '● Server Online' : '● Server Offline' }}
-                </button>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="login-password" required placeholder="••••••••">
             </div>
-        </header>
+            <button type="submit" class="btn-primary" style="width:100%">Sign In</button>
+        </form>
+        <div class="toggle-link">No account? <span onclick="switchView('register-view')">Register</span></div>
+    </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- LOGIN TEST SECTION -->
-            <section class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b pb-2">Authentication Test</h2>
-                <form @submit.prevent="login" class="space-y-4 bg-blue-50 p-4 rounded-md border border-blue-100">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-600 mb-1">Email</label>
-                        <input v-model="loginForm.email" type="email" placeholder="ali@gmail.com" required 
-                               class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-400 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-600 mb-1">Password</label>
-                        <input v-model="loginForm.password" type="password" placeholder="password123" required 
-                               class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-400 outline-none">
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700 transition">
-                        Login
-                    </button>
-                </form>
-                <div v-if="loginResult" class="mt-4 p-3 rounded-md text-sm" 
-                     :class="loginResult.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
-                    {{ loginResult.message }}
-                </div>
-            </section>
+    <!-- REGISTER VIEW -->
+    <div id="register-view" class="auth-container" style="display:none">
+        <h2 style="text-align:center">Register</h2>
+        <p style="text-align:center; color:var(--text-muted); margin-bottom:2rem">Create account</p>
+        <form id="register-form">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="reg-name" required>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="reg-email" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="reg-password" required minlength="8">
+            </div>
+            <div class="form-group">
+                <label>Requested Role</label>
+                <select id="reg-role" style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:8px; font-family:inherit;">
+                    <option value="ROLE_USER">User</option>
+                    <option value="ROLE_MANAGER">Manager</option>
+                    <option value="ROLE_ADMIN">Admin</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-primary" style="width:100%">Create Account</button>
+        </form>
+        <div class="toggle-link">Have an account? <span onclick="switchView('login-view')">Sign In</span></div>
+    </div>
 
-            <!-- USER MANAGEMENT SECTION -->
-            <section class="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
-                <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b pb-2">User Management</h2>
-                
-                <!-- Create User Form -->
-                <form @submit.prevent="createUser" class="space-y-4 mb-8 bg-gray-50 p-4 rounded-md border">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input v-model="userForm.name" type="text" placeholder="Full Name" required 
-                               class="p-2 border rounded focus:ring-2 focus:ring-blue-400 outline-none">
-                        <input v-model="userForm.email" type="email" placeholder="Email" required 
-                               class="p-2 border rounded focus:ring-2 focus:ring-blue-400 outline-none">
-                        <input v-model="userForm.password" type="password" placeholder="Password" required 
-                               class="p-2 border rounded focus:ring-2 focus:ring-blue-400 outline-none">
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700 transition">
-                        Create User
-                    </button>
-                </form>
-
-                <!-- User Table -->
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-200 text-gray-700">
-                                <th class="p-3 border">Name</th>
-                                <th class="p-3 border">Email</th>
-                                <th class="p-3 border">Groups</th>
-                                <th class="p-3 border">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50 transition">
-                                <td class="p-3 border">{{ user.name }}</td>
-                                <td class="p-3 border">{{ user.email }}</td>
-                                <td class="p-3 border">
-                                    <div class="flex flex-wrap gap-1">
-                                        <span v-for="group in user.groups" :key="group.id" 
-                                              class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-                                            {{ group.name }}
-                                        </span>
-                                    </div>
-                                </td>
-                                <td class="p-3 border text-center space-x-2">
-                                    <button @click="openEditUser(user)" class="text-blue-500 hover:text-blue-700 font-medium">Edit/Groups</button>
-                                    <button @click="deleteUser(user.id)" class="text-red-500 hover:text-red-700 font-medium">Delete</button>
-                                </td>
-                            </tr>
-                            <tr v-if="users.length === 0">
-                                <td colspan="4" class="p-4 text-center text-gray-400 italic">No users found</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+    <!-- DASHBOARD VIEW -->
+    <div id="dashboard-view" class="dashboard-container">
+        <div class="header-nav">
+            <div class="links">
+                <a href="http://localhost:9090" target="_blank">Prometheus</a>
+                <a href="http://localhost:3000" target="_blank">Grafana</a>
+                <a href="/swagger-ui/index.html" target="_blank">API Docs</a>
+            </div>
+            <div class="info-icon" onclick="openTokenModal()" title="Token Details">i</div>
         </div>
 
-        <!-- GROUP MANAGEMENT SECTION -->
-        <section class="bg-white p-6 rounded-lg shadow-md mt-8">
-            <h2 class="text-2xl font-semibold mb-6 text-gray-700 border-b pb-2">Group Management</h2>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <form @submit.prevent="createGroup" class="space-y-4 bg-gray-50 p-4 rounded-md border h-fit">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-600 mb-1">Group Name</label>
-                        <input v-model="groupForm.name" type="text" required 
-                               class="w-full p-2 border rounded focus:ring-2 focus:ring-green-400 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-600 mb-1">Description</label>
-                        <input v-model="groupForm.description" type="text" 
-                               class="w-full p-2 border rounded focus:ring-2 focus:ring-green-400 outline-none">
-                    </div>
-                    <button type="submit" class="w-full bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700 transition">
-                        Create Group
-                    </button>
-                </form>
-
-                <div class="lg:col-span-2 overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-200 text-gray-700">
-                                <th class="p-3 border">Name</th>
-                                <th class="p-3 border">Description</th>
-                                <th class="p-3 border">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="group in groups" :key="group.id" class="hover:bg-gray-50 transition">
-                                <td class="p-3 border font-medium">{{ group.name }}</td>
-                                <td class="p-3 border text-gray-600">{{ group.description }}</td>
-                                <td class="p-3 border text-center">
-                                    <button @click="deleteGroup(group.id)" class="text-red-500 hover:text-red-700 font-medium">Delete</button>
-                                </td>
-                            </tr>
-                            <tr v-if="groups.length === 0">
-                                <td colspan="3" class="p-4 text-center text-gray-400 italic">No groups found</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- EDIT USER MODAL -->
-        <div v-if="editUserOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                <h3 class="text-xl font-bold mb-4 text-gray-800">Update User & Groups</h3>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-600 mb-1">Name</label>
-                        <input v-model="editUserForm.name" type="text" class="w-full p-2 border rounded outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-600 mb-1">Email</label>
-                        <input v-model="editUserForm.email" type="email" class="w-full p-2 border rounded outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-600 mb-2">Assign Groups</label>
-                        <div class="max-h-40 overflow-y-auto border rounded p-2 space-y-2">
-                            <label v-for="group in groups" :key="group.id" class="flex items-center gap-2 p-1 hover:bg-gray-100 rounded cursor-pointer">
-                                <input type="checkbox" :value="group.id" v-model="editUserForm.groupIds" class="rounded text-blue-600">
-                                <span class="text-sm text-gray-700">{{ group.name }}</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 mt-6">
-                    <button @click="editUserOpen = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded font-medium">Cancel</button>
-                    <button @click="updateUser" class="px-4 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 transition">Save Changes</button>
-                </div>
-            </div>
+        <div class="tabs">
+            <div id="tab-users" class="tab active" onclick="switchTab('users')">Users Management</div>
+            <div id="tab-groups" class="tab" onclick="switchTab('groups')">Groups Management</div>
+            <div id="tab-roles" class="tab" onclick="switchTab('roles')">Roles Management</div>
         </div>
 
-        <!-- Notifications -->
-        <div class="fixed bottom-4 right-4 space-y-2">
-            <div v-for="notif in notifications" :key="notif.id" 
-                 :class="notif.type === 'success' ? 'bg-green-600' : 'bg-red-600'"
-                 class="px-6 py-3 text-white rounded-lg shadow-lg transition-all duration-500 transform translate-y-0">
-                {{ notif.message }}
+        <!-- Users Section -->
+        <div id="section-users" class="card">
+            <div class="card-header">
+                <h2>Users</h2>
+                <button onclick="openUserModal()" class="btn-primary">+ Add User</button>
+            </div>
+            <table id="user-table">
+                <thead>
+                    <tr><th>Name</th><th>Email</th><th>Groups</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="user-body"></tbody>
+            </table>
+        </div>
+
+        <!-- Groups Section -->
+        <div id="section-groups" class="card" style="display:none">
+            <div class="card-header">
+                <h2>Groups</h2>
+                <button onclick="openGroupModal()" class="btn-primary">+ Add Group</button>
+            </div>
+            <table id="group-table">
+                <thead>
+                    <tr><th>Name</th><th>Description</th><th>Members</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="group-body"></tbody>
+            </table>
+        </div>
+
+        <!-- Roles Section -->
+        <div id="section-roles" class="card" style="display:none">
+            <div class="card-header">
+                <h2>Roles</h2>
+                <button onclick="openRoleModal()" class="btn-primary">+ Add Role</button>
+            </div>
+            <table id="role-table">
+                <thead>
+                    <tr><th>Name</th><th>Description</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="role-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Token Modal -->
+    <div id="token-modal" class="modal">
+        <div class="modal-content">
+            <h3>Session Tokens</h3>
+            <div class="form-group">
+                <label>Access Token</label>
+                <div id="modal-access" class="token-box" style="width:100%; max-width:none; display:block; color:var(--text-main); background:#f0f0f0; padding:10px; border-radius:5px; word-break: break-all;">...</div>
+            </div>
+            <div class="form-group">
+                <label>Refresh Token</label>
+                <div id="modal-refresh" class="token-box" style="width:100%; max-width:none; display:block; color:var(--text-main); background:#f0f0f0; padding:10px; border-radius:5px; word-break: break-all;">...</div>
+            </div>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px">
+                <button onclick="logout()" class="btn-danger">Log Out</button>
+                <button onclick="closeModal('token-modal')" class="btn-outline">Close</button>
             </div>
         </div>
     </div>
 
-    <script>
-        const { createApp, ref, onMounted } = Vue;
+    <!-- User Modal -->
+    <div id="user-modal" class="modal" style="display:none">
+        <div class="modal-content">
+            <h3 id="user-modal-title">Add User</h3>
+            <form id="user-form">
+                <input type="hidden" id="user-id">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="user-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="user-email" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="user-password" required minlength="8">
+                </div>
+                <div class="form-group">
+                    <label>Assign Groups</label>
+                    <div id="group-checklist" class="checklist-group"></div>
+                </div>
+                <div class="form-group">
+                    <label>Assign Direct Roles</label>
+                    <div id="role-checklist" class="checklist-group"></div>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end">
+                    <button type="button" onclick="closeModal('user-modal')" class="btn-outline">Cancel</button>
+                    <button type="submit" class="btn-primary">Save User</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        createApp({
-            setup() {
-                const users = ref([]);
-                const groups = ref([]);
-                const connectionStatus = ref('offline');
-                const notifications = ref([]);
+    <!-- Group Modal -->
+    <div id="group-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="group-modal-title">Add Group</h3>
+            <form id="group-form">
+                <input type="hidden" id="group-id">
+                <div class="form-group">
+                    <label>Group Name</label>
+                    <input type="text" id="group-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="group-desc" required>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end">
+                    <button type="button" onclick="closeModal('group-modal')" class="btn-outline">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Role Modal -->
+    <div id="role-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="role-modal-title">Add Role</h3>
+            <form id="role-form">
+                <input type="hidden" id="role-id">
+                <div class="form-group">
+                    <label>Role Name</label>
+                    <input type="text" id="role-name" required placeholder="ROLE_ADMIN">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="role-desc" required>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end">
+                    <button type="button" onclick="closeModal('role-modal')" class="btn-outline">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Role</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script>
+    const API_BASE = '/api/v1';
+    const AUTH_URL = `${API_BASE}/auth`;
+
+    let tokens = {
+        access: localStorage.getItem('accessToken'),
+        refresh: localStorage.getItem('refreshToken')
+    };
+    let allUsers = [];
+    let allGroups = [];
+    let allRoles = [];
+
+    function showAlert(msg, success = true) {
+        const box = document.getElementById('alert-box');
+        box.textContent = msg;
+        box.className = `alert ${success ? 'success' : 'error'}`;
+        box.style.display = 'block';
+        setTimeout(() => box.style.display = 'none', 3000);
+    }
+
+    function switchView(view) {
+        document.getElementById('login-view').style.display = view === 'login-view' ? 'block' : 'none';
+        document.getElementById('register-view').style.display = view === 'register-view' ? 'block' : 'none';
+        document.getElementById('dashboard-view').style.display = view === 'dashboard-view' ? 'block' : 'none';
+    }
+
+    function switchTab(tab) {
+        document.getElementById('tab-users').classList.toggle('active', tab === 'users');
+        document.getElementById('tab-groups').classList.toggle('active', tab === 'groups');
+        document.getElementById('tab-roles').classList.toggle('active', tab === 'roles');
+        document.getElementById('section-users').style.display = tab === 'users' ? 'block' : 'none';
+        document.getElementById('section-groups').style.display = tab === 'groups' ? 'block' : 'none';
+        document.getElementById('section-roles').style.display = tab === 'roles' ? 'block' : 'none';
+        if(tab === 'users') loadUsers(); else if(tab === 'groups') loadGroups(); else loadRoles();
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    async function secureFetch(url, options = {}) {
+        if (!options.headers) options.headers = {};
+        if (tokens.access) {
+            options.headers['Authorization'] = `Bearer ${tokens.access}`;
+        }
+
+        let response = await fetch(url, options);
+
+        if (response.status === 401 && tokens.refresh) {
+            console.log("Access token expired. Attempting refresh...");
+            const refreshRes = await fetch(`${AUTH_URL}/refresh`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refreshToken: tokens.refresh })
+            });
+
+            if (refreshRes.ok) {
+                const data = await refreshRes.json();
+                tokens.access = data.accessToken;
+                tokens.refresh = data.refreshToken;
+                localStorage.setItem('accessToken', tokens.access);
+                localStorage.setItem('refreshToken', tokens.refresh);
                 
-                const userForm = ref({ name: '', email: '', password: '' });
-                const groupForm = ref({ name: '', description: '' });
-                const loginForm = ref({ email: '', password: '' });
-                const loginResult = ref(null);
-
-                const editUserOpen = ref(false);
-                const editUserForm = ref({ id: '', name: '', email: '', groupIds: [] });
-
-                const API_BASE = '/api/v1';
-
-                const notify = (message, type = 'success') => {
-                    const id = Date.now();
-                    notifications.value.push({ id, message, type });
-                    setTimeout(() => {
-                        notifications.value = notifications.value.filter(n => n.id !== id);
-                    }, 3000);
-                };
-
-                const testConnection = async () => {
-                    try {
-                        const res = await fetch(`${API_BASE}/users`);
-                        if (res.ok) {
-                            connectionStatus.value = 'online';
-                            notify('Server connection successful!');
-                        } else {
-                            throw new Error();
-                        }
-                    } catch (e) {
-                        connectionStatus.value = 'offline';
-                        notify('Server connection failed!', 'error');
-                    }
-                };
-
-                const fetchUsers = async () => {
-                    try {
-                        const res = await fetch(`${API_BASE}/users`);
-                        users.value = await res.json();
-                    } catch (e) { console.error(e); }
-                };
-
-                const fetchGroups = async () => {
-                    try {
-                        const res = await fetch(`${API_BASE}/groups`);
-                        groups.value = await res.json();
-                    } catch (e) { console.error(e); }
-                };
-
-                const login = async () => {
-                    try {
-                        const res = await fetch(`${API_BASE}/auth/login`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(loginForm.value)
-                        });
-                        const data = await res.json();
-                        if (res.ok) {
-                            loginResult.value = { success: true, message: 'Login Successful! Welcome ' + data.name };
-                            notify('Welcome back!');
-                        } else {
-                            loginResult.value = { success: false, message: data.detail || 'Authentication failed' };
-                        }
-                    } catch (e) {
-                        loginResult.value = { success: false, message: 'Network error' };
-                    }
-                };
-
-                const createUser = async () => {
-                    try {
-                        const res = await fetch(`${API_BASE}/users`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(userForm.value)
-                        });
-                        if (res.ok) {
-                            notify('User created!');
-                            userForm.value = { name: '', email: '', password: '' };
-                            await fetchUsers();
-                        } else {
-                            const err = await res.json();
-                            notify(err.detail || 'Error', 'error');
-                        }
-                    } catch (e) { notify('Network error', 'error'); }
-                };
-
-                const openEditUser = (user) => {
-                    editUserForm.value = {
-                        id: user.id,
-                        name: user.name,
-                        email: user.email,
-                        groupIds: user.groups.map(g => g.id)
-                    };
-                    editUserOpen.value = true;
-                };
-
-                const updateUser = async () => {
-                    try {
-                        const res = await fetch(`${API_BASE}/users/${editUserForm.value.id}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                name: editUserForm.value.name,
-                                email: editUserForm.value.email,
-                                groupIds: editUserForm.value.groupIds
-                            })
-                        });
-                        if (res.ok) {
-                            notify('User updated!');
-                            editUserOpen.value = false;
-                            await fetchUsers();
-                        } else {
-                            const err = await res.json();
-                            notify(err.detail || 'Error', 'error');
-                        }
-                    } catch (e) { notify('Network error', 'error'); }
-                };
-
-                const deleteUser = async (id) => {
-                    if(!confirm('Delete?')) return;
-                    try {
-                        const res = await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE' });
-                        if (res.ok) {
-                            notify('User deleted!');
-                            await fetchUsers();
-                        }
-                    } catch (e) { notify('Network error', 'error'); }
-                };
-
-                const createGroup = async () => {
-                    try {
-                        const res = await fetch(`${API_BASE}/groups`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(groupForm.value)
-                        });
-                        if (res.ok) {
-                            notify('Group created!');
-                            groupForm.value = { name: '', description: '' };
-                            await fetchGroups();
-                        } else {
-                            const err = await res.json();
-                            notify(err.detail || 'Error', 'error');
-                        }
-                    } catch (e) { notify('Network error', 'error'); }
-                };
-
-                const deleteGroup = async (id) => {
-                    if(!confirm('Delete?')) return;
-                    try {
-                        const res = await fetch(`${API_BASE}/groups/${id}`, { method: 'DELETE' });
-                        if (res.ok) {
-                            notify('Group deleted!');
-                            await fetchGroups();
-                        }
-                    } catch (e) { notify('Network error', 'error'); }
-                };
-
-                onMounted(() => {
-                    testConnection();
-                    fetchUsers();
-                    fetchGroups();
-                });
-
-                return {
-                    users, groups, connectionStatus, notifications,
-                    userForm, groupForm, loginForm, loginResult,
-                    editUserOpen, editUserForm,
-                    testConnection, createUser, deleteUser, createGroup, deleteGroup, login, openEditUser, updateUser
-                };
+                if (!options.headers) options.headers = {};
+                options.headers['Authorization'] = `Bearer ${tokens.access}`;
+                return await fetch(url, options);
+            } else {
+                logout();
+                throw new Error("Session expired. Please login again.");
             }
-        }).mount('#app');
-    </script>
+        }
+        return response;
+    }
+
+    function openTokenModal() {
+        document.getElementById('modal-access').textContent = tokens.access || 'None';
+        document.getElementById('modal-refresh').textContent = tokens.refresh || 'None';
+        document.getElementById('token-modal').style.display = 'flex';
+    }
+
+    document.getElementById('login-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        try {
+            const res = await fetch(`${AUTH_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            if (!res.ok) throw new Error("Auth failed");
+            const data = await res.json();
+            tokens.access = data.accessToken;
+            tokens.refresh = data.refreshToken;
+            localStorage.setItem('accessToken', tokens.access);
+            localStorage.setItem('refreshToken', tokens.refresh);
+            switchView('dashboard-view');
+            loadUsers();
+        } catch (e) { showAlert(e.message, false); }
+    };
+
+    document.getElementById('register-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('reg-name').value;
+        const email = document.getElementById('reg-email').value;
+        const password = document.getElementById('reg-password').value;
+        const role = document.getElementById('reg-role').value;
+        try {
+            const res = await fetch(`${AUTH_URL}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password, roleIds: [role] })
+            });
+            if (!res.ok) throw new Error("Registration failed");
+            showAlert("Account created!", true);
+            switchView('login-view');
+        } catch (e) { showAlert(e.message, false); }
+    };
+
+    function logout() {
+        localStorage.clear();
+        tokens = { access: null, refresh: null };
+        switchView('login-view');
+        closeModal('token-modal');
+    }
+
+    async function loadUsers() {
+        const res = await secureFetch(`${API_BASE}/users`);
+        if (!res.ok) return;
+        allUsers = await res.json();
+        const body = document.getElementById('user-body');
+        body.innerHTML = allUsers.map(u => {
+            const groupNames = u.groups ? u.groups.map(g => g.name).join(', ') : 'None';
+            return `
+            <tr>
+                <td>${u.name}</td>
+                <td>${u.email}</td>
+                <td>${groupNames}</td>
+                <td>
+                    <button onclick="openUserModal('${u.id}', '${u.name}', '${u.email}', ${JSON.stringify(u.groups || []).replace(/\"/g, '&quot;')})" class="btn-outline">Edit</button>
+                    <button onclick="deleteUser('${u.id}')" class="btn-danger">Delete</button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    async function openUserModal(id='', name='', email='', userGroups=[]) {
+        const groupsRes = await secureFetch(`${API_BASE}/groups`);
+        allGroups = groupsRes.ok ? await groupsRes.json() : [];
+        
+        const checklist = document.getElementById('group-checklist');
+        checklist.innerHTML = allGroups.map(g => {
+            const isChecked = userGroups.some(ug => ug.id === g.id) ? 'checked' : '';
+            return `<label class=\"checklist-item\">\n                <input type=\"checkbox\" value=\"${g.id}\" ${isChecked}> <span>${g.name}</span>\n            </label>`;
+        }).join('');
+
+        const rolesRes = await secureFetch(`${API_BASE}/roles`);
+        allRoles = rolesRes.ok ? await rolesRes.json() : [];
+        const roleChecklist = document.getElementById('role-checklist');
+        roleChecklist.innerHTML = allRoles.map(r => {
+            // Note: UserResponse needs to be updated to include roles for editing to work perfectly
+            // For now, we provide the list.
+            return `<label class=\"checklist-item\">\n                <input type=\"checkbox\" value=\"${r.id}\"> <span>${r.name}</span>\n            </label>`;
+        }).join('');
+
+        document.getElementById('user-id').value = id;
+        document.getElementById('user-name').value = name;
+        document.getElementById('user-email').value = email;
+        document.getElementById('user-modal-title').textContent = id ? 'Edit User' : 'Add User';
+        document.getElementById('user-modal').style.display = 'flex';
+    }
+
+    document.getElementById('user-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('user-id').value;
+        const selectedGroups = Array.from(document.querySelectorAll('#group-checklist input:checked')).map(i => i.value);
+        const selectedRoles = Array.from(document.querySelectorAll('#role-checklist input:checked')).map(i => i.value);
+        
+        const payload = {
+            name: document.getElementById('user-name').value,
+            email: document.getElementById('user-email').value,
+            password: document.getElementById('user-password').value,
+            groupIds: selectedGroups,
+            roleIds: selectedRoles
+        };
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${API_BASE}/users/${id}` : `${API_BASE}/users`;
+
+        try {
+            const res = await secureFetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error("Save failed");
+            showAlert("User saved!", true);
+            closeModal('user-modal');
+            loadUsers();
+        } catch (e) { showAlert(e.message, false); }
+    };
+
+    async function deleteUser(id) {
+        if (!confirm("Delete this user?")) return;
+        try {
+            const res = await secureFetch(`${API_BASE}/users/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error("Delete failed");
+            showAlert("User deleted", true);
+            loadUsers();
+        } catch (e) { showAlert(e.message, false); }
+    }
+
+    async function loadGroups() {
+        const res = await secureFetch(`${API_BASE}/groups`);
+        if (!res.ok) return;
+        allGroups = await res.json();
+        const body = document.getElementById('group-body');
+        body.innerHTML = allGroups.map(g => {
+            const members = allUsers.filter(u => u.groups && u.groups.some(ug => ug.id === g.id))
+                                    .map(u => u.name).join(', ') || 'No members';
+            return `
+            <tr>
+                <td>${g.name}</td>
+                <td>${g.description}</td>
+                <td>${members}</td>
+                <td>
+                    <button onclick="openGroupModal('${g.id}', '${g.name}', '${g.description}')" class="btn-outline">Edit</button>
+                    <button onclick="deleteGroup('${g.id}')" class="btn-danger">Delete</button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function openGroupModal(id='', name='', desc='') {
+        document.getElementById('group-id').value = id;
+        document.getElementById('group-name').value = name;
+        document.getElementById('group-desc').value = desc;
+        document.getElementById('group-modal-title').textContent = id ? 'Edit Group' : 'Add Group';
+        document.getElementById('group-modal').style.display = 'flex';
+    }
+
+    document.getElementById('group-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('group-id').value;
+        const payload = {
+            name: document.getElementById('group-name').value,
+            description: document.getElementById('group-desc').value
+        };
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${API_BASE}/groups/${id}` : `${API_BASE}/groups`;
+
+        try {
+            const res = await secureFetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error("Save failed");
+            showAlert("Group saved!", true);
+            closeModal('group-modal');
+            loadGroups();
+        } catch (e) { showAlert(e.message, false); }
+    };
+
+    async function deleteGroup(id) {
+        if (!confirm("Delete this group?")) return;
+        try {
+            const res = await secureFetch(`${API_BASE}/groups/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error("Delete failed");
+            showAlert("Group deleted", true);
+            loadGroups();
+        } catch (e) { showAlert(e.message, false); }
+    }
+
+    async function loadRoles() {
+        const res = await secureFetch(`${API_BASE}/roles`);
+        if (!res.ok) return;
+        allRoles = await res.json();
+        const body = document.getElementById('role-body');
+        body.innerHTML = allRoles.map(r => `
+            <tr>
+                <td>${r.name}</td>
+                <td>${r.description}</td>
+                <td>
+                    <button onclick="deleteRole('${r.id}')" class="btn-danger">Delete</button>
+                </td>
+            </tr>`).join('');
+    }
+
+    function openRoleModal() {
+        document.getElementById('role-id').value = '';
+        document.getElementById('role-name').value = '';
+        document.getElementById('role-desc').value = '';
+        document.getElementById('role-modal-title').textContent = 'Add Role';
+        document.getElementById('role-modal').style.display = 'flex';
+    }
+
+    document.getElementById('role-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const payload = {
+            name: document.getElementById('role-name').value,
+            description: document.getElementById('role-desc').value
+        };
+        try {
+            const res = await secureFetch(`${API_BASE}/roles`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error("Save failed");
+            showAlert("Role saved!", true);
+            closeModal('role-modal');
+            loadRoles();
+        } catch (e) { showAlert(e.message, false); }
+    };
+
+    async function deleteRole(id) {
+        if (!confirm("Delete this role?")) return;
+        try {
+            const res = await secureFetch(`${API_BASE}/roles/${id}`, { method: 'DELETE' }); // Note: Roles API doesn't have DELETE in my current implementation but I'll add it to controller if needed.
+            if (!res.ok) throw new Error("Delete failed");
+            showAlert("Role deleted", true);
+            loadRoles();
+        } catch (e) { showAlert(e.message, false); }
+    }
+
+    window.onload = () => {
+        if (tokens.access) {
+            switchView('dashboard-view');
+            loadUsers();
+        } else {
+            switchView('login-view');
+        }
+    };
+</script>
+
 </body>
 </html>

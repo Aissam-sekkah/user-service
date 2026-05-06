@@ -2,15 +2,21 @@ package com.aissek.userservice.domain.service;
 
 import com.aissek.userservice.domain.exception.*;
 import com.aissek.userservice.domain.model.Group;
+import com.aissek.userservice.domain.model.Role;
 import com.aissek.userservice.domain.model.User;
 import com.aissek.userservice.domain.model.PasswordPolicy;
 import com.aissek.userservice.domain.port.in.UserUseCase;
 import com.aissek.userservice.domain.port.out.GroupRepositoryPort;
 import com.aissek.userservice.domain.port.out.PasswordHasherPort;
 import com.aissek.userservice.domain.port.out.UserRepositoryPort;
+import com.aissek.userservice.domain.port.out.TokenServicePort;
+import com.aissek.userservice.config.AuditConfig.AuditEventType;
+import com.aissek.userservice.config.AuditConfig.AuditLogger;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -25,16 +31,21 @@ public class UserDomainService implements UserUseCase {
     private final UserRepositoryPort userRepository;
     private final PasswordHasherPort passwordHasher;
     private final GroupRepositoryPort groupRepository;
+    private final TokenServicePort tokenService;
+    private final AuditLogger auditLogger;
 
-    public UserDomainService(UserRepositoryPort userRepository, PasswordHasherPort passwordHasher, GroupRepositoryPort groupRepository){
+    public UserDomainService(UserRepositoryPort userRepository, PasswordHasherPort passwordHasher, GroupRepositoryPort groupRepository, TokenServicePort tokenService, AuditLogger auditLogger){
         this.userRepository = userRepository;
         this.passwordHasher = passwordHasher;
         this.groupRepository = groupRepository;
+        this.tokenService = tokenService;
+        this.auditLogger = auditLogger;
     }
+
 
     @Override
     @Transactional
-    public User createUser(String name, String email, String password, Set<Group> groups) {
+    public User createUser(String name, String email, String password, Set<Group> groups, Set<Role> roles) {
         log.info("Attempting to create new user with email: {}", email);
         new PasswordPolicy(password);
         
@@ -44,8 +55,13 @@ public class UserDomainService implements UserUseCase {
         }
 
         User user = new User(name, email, passwordHasher.hash(password), groups);
+        if (roles != null && !roles.isEmpty()) {
+            user.assignDirectRoles(roles);
+        }
         User savedUser = userRepository.save(user);
         log.info("User created successfully with ID: {}", savedUser.getId());
+        auditLogger.logAuditEvent(AuditEventType.USER_CREATED, savedUser.getId(), email, 
+                true, "User created with " + (groups != null ? groups.size() : 0) + " groups and " + (roles != null ? roles.size() : 0) + " roles");
         return savedUser;
     }
 
@@ -61,19 +77,34 @@ public class UserDomainService implements UserUseCase {
     @Override
     public User login(String email, String password) {
         log.info("Authentication attempt for email: {}", email);
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> {
-                    log.warn("Authentication failed: email {} not found", email);
-                    return new AuthenticationException("Email ou mot de passe invalide");
-                });
+        User user;
+        try {
+            user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> {
+                        log.warn("Authentication failed: email {} not found", email);
+                        auditLogger.logAuditEvent(AuditEventType.LOGIN_FAILURE, null, email, 
+                                false, "User not found");
+                        return new AuthenticationException("Email ou mot de passe invalide");
+                    });
 
-        if (!passwordHasher.matches(password, user.getPasswordHash())) {
-            log.warn("Authentication failed: invalid password for email {}", email);
-            throw new AuthenticationException("Email ou mot de passe invalide");
+            if (!passwordHasher.matches(password, user.getPasswordHash())) {
+                log.warn("Authentication failed: invalid password for email {}", email);
+                auditLogger.logAuditEvent(AuditEventType.LOGIN_FAILURE, user.getId(), email, 
+                        false, "Invalid password");
+                throw new AuthenticationException("Email ou mot de passe invalide");
+            }
+
+            log.info("User authenticated successfully: ID {}", user.getId());
+            auditLogger.logAuditEvent(AuditEventType.LOGIN_SUCCESS, user.getId(), email, 
+                    true, "Successful login");
+            return user;
+        } catch (AuthenticationException e) {
+            throw e;
+        } catch (Exception e) {
+            auditLogger.logAuditEvent(AuditEventType.LOGIN_FAILURE, null, email, 
+                    false, "Unexpected error: " + e.getMessage());
+            throw e;
         }
-
-        log.info("User authenticated successfully: ID {}", user.getId());
-        return user;
     }
 
     @Override
@@ -83,10 +114,13 @@ public class UserDomainService implements UserUseCase {
 
     @Override
     @Transactional
-    public User updateUser(String id, String name, String email, Set<Group> groups) {
+    public User updateUser(String id, String name, String email, Set<Group> groups, Set<com.aissek.userservice.domain.model.Role> roles) {
         log.info("Updating profile for user ID: {}", id);
         User user = getUserById(id);
         user.updateProfile(name, email, groups);
+        if (roles != null) {
+            user.assignDirectRoles(roles);
+        }
         User updatedUser = userRepository.save(user);
         log.info("User profile updated successfully: ID {}", updatedUser.getId());
         return updatedUser;
@@ -99,6 +133,8 @@ public class UserDomainService implements UserUseCase {
         User user = getUserById(id);
         if (!passwordHasher.matches(currentPassword, user.getPasswordHash())) {
             log.warn("Password change failed: current password mismatch for user ID {}", id);
+            auditLogger.logAuditEvent(AuditEventType.PASSWORD_CHANGE_FAILURE, user.getId(), user.getEmail(), 
+                    false, "Current password mismatch");
             throw new InvalidDomainStateException("Mot de passe actuel invalide");
         }
 
@@ -106,14 +142,73 @@ public class UserDomainService implements UserUseCase {
         user.changePassword(passwordHasher.hash(newPassword));
         userRepository.save(user);
         log.info("Password changed successfully for user ID: {}", id);
+        auditLogger.logAuditEvent(AuditEventType.PASSWORD_CHANGE_SUCCESS, user.getId(), user.getEmail(), 
+                true, "Password changed successfully");
     }
 
     @Override
     @Transactional
     public void deleteUser(String id) {
         log.info("Deleting user with ID: {}", id);
-        getUserById(id);
+        User user = getUserById(id);
+        auditLogger.logAuditEvent(AuditEventType.USER_DELETED, user.getId(), user.getEmail(), 
+                true, "User account deleted");
         userRepository.deleteById(id);
         log.info("User deleted successfully: ID {}", id);
+    }
+
+    @Override
+    @Transactional
+    public void updateRefreshToken(String id, String refreshToken) {
+        User user = getUserById(id);
+        user.updateRefreshToken(passwordHasher.hash(refreshToken));
+        userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public User refreshAccessToken(String refreshToken) {
+        log.info("Refresh token request received");
+        
+        // Step 1: Validate JWT signature and expiration FIRST
+        String email;
+        try {
+            email = tokenService.extractUsername(refreshToken);
+        } catch (IllegalArgumentException e) {
+            log.warn("Refresh token JWT validation failed: {}", e.getMessage());
+            auditLogger.logAuditEvent(AuditEventType.TOKEN_REFRESH_FAILURE, null, null, 
+                    false, "JWT validation failed: " + e.getMessage());
+            throw new AuthenticationException("Invalid or expired refresh token");
+        }
+        
+        // Step 2: Verify the JWT is valid for this username
+        if (!tokenService.isTokenValid(refreshToken, email)) {
+            log.warn("Refresh token is invalid or expired for user: {}", email);
+            auditLogger.logAuditEvent(AuditEventType.TOKEN_REFRESH_FAILURE, null, email, 
+                    false, "Token invalid or expired");
+            throw new AuthenticationException("Invalid or expired refresh token");
+        }
+
+        
+        // Step 3: Verify token hash exists in DB (check for revocation/match)
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    log.warn("User not found for refresh token email: {}", email);
+                    auditLogger.logAuditEvent(AuditEventType.TOKEN_REFRESH_FAILURE, null, email, 
+                            false, "User not found");
+                    return new AuthenticationException("Invalid or expired refresh token");
+                });
+        
+        if (!passwordHasher.matches(refreshToken, user.getRefreshToken())) {
+            log.warn("Refresh token hash mismatch for user: {}", email);
+            auditLogger.logAuditEvent(AuditEventType.TOKEN_REFRESH_FAILURE, user.getId(), email, 
+                    false, "Token hash mismatch");
+            throw new AuthenticationException("Invalid or expired refresh token");
+        }
+        
+        log.info("Refresh token validated successfully for user: {}", user.getEmail());
+        auditLogger.logAuditEvent(AuditEventType.TOKEN_REFRESH_SUCCESS, user.getId(), user.getEmail(), 
+                true, "Token refreshed successfully");
+        return user;
     }
 }

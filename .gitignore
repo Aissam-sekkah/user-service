@@ -1,5 +1,11 @@
 # This is a sample .gitignore file. It contains common files that are typically ignored in a Spring Boot project.
-# ... (rest of the file)
+
+# Local environment files
+.env
+.env.local
+.env.dev
+.env.prod
+
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
