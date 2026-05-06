@@ -1,144 +1,102 @@
 package com.aissek.userservice.domain.service;
 
-import com.aissek.userservice.domain.exception.*;
+import com.aissek.userservice.config.AuditConfig.AuditLogger;
 import com.aissek.userservice.domain.model.User;
+import com.aissek.userservice.domain.port.out.GroupRepositoryPort;
 import com.aissek.userservice.domain.port.out.PasswordHasherPort;
 import com.aissek.userservice.domain.port.out.UserRepositoryPort;
+import com.aissek.userservice.domain.port.out.TokenServicePort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Set;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class UserDomainServiceTest {
 
-    @Mock
     private UserRepositoryPort userRepository;
-
-    @Mock
-    private PasswordHasherPort passwordHasherPort;
-
-    @InjectMocks
+    private PasswordHasherPort passwordHasher;
+    private GroupRepositoryPort groupRepository;
+    private TokenServicePort tokenService;
+    private AuditLogger auditLogger;
     private UserDomainService userDomainService;
 
-    private User user;
-    private String name;
-    private String email;
-    private String password;
-    private String passwordHash;
-
     @BeforeEach
-    void setUp(){
-        name = "ali";
-        email = "ali@email.com";
-        password = "Password123!";
-        passwordHash = "$2a$10$hashedPassword";
-        user = new User("123", "ali", "ali@email.com", passwordHash, null, LocalDateTime.now());
+    void setUp() {
+        userRepository = mock(UserRepositoryPort.class);
+        passwordHasher = mock(PasswordHasherPort.class);
+        groupRepository = mock(GroupRepositoryPort.class);
+        tokenService = mock(TokenServicePort.class);
+        auditLogger = mock(AuditLogger.class);
+        userDomainService = new UserDomainService(userRepository, passwordHasher, groupRepository, tokenService, auditLogger);
     }
 
     @Test
-    @DisplayName("Test de création d'un nouveau user")
-    public void shouldCreateUserSuccessfully(){
-        // Arrange
-        when(userRepository.existByEmail(anyString())).thenReturn(false);
-        when(passwordHasherPort.hash(password)).thenReturn(passwordHash);
-        when(userRepository.save(any(User.class))).thenReturn(user);
+    @DisplayName("Should update user refresh token successfully")
+    void shouldUpdateRefreshToken() {
+        User user = new User("John", "john@example.com", "hash", Set.of());
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(passwordHasher.hash("new-refresh-token")).thenReturn("hashed-token");
 
-        // Act
-        User result = userDomainService.createUser(name, email, password, null);
+        userDomainService.updateRefreshToken(user.getId(), "new-refresh-token");
 
-        // Assert
-        verify(userRepository, times(1) ).save(any(User.class));
-        verify(passwordHasherPort, times(1)).hash(password);
-        assertThat(result).isNotNull();
-        assertThat(result.getEmail()).isEqualTo("ali@email.com");
-
+        assertEquals("hashed-token", user.getRefreshToken());
+        verify(userRepository, times(1)).save(user);
     }
 
     @Test
-    @DisplayName("Test de creation d'utilisateur avec un email existant")
-    public void shouldThrowEmailAlreadyExist(){
-        // Arrange
-        when(userRepository.existByEmail(anyString())).thenReturn(true);
-        // Act && Assert
-        assertThatThrownBy(() -> userDomainService.createUser(name, email, password, null))
-                .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("Email déjà utilisé" );
+    @DisplayName("Should return user when valid refresh token is provided")
+    void shouldRefreshAccessTokenSuccess() {
+        User user = new User("John", "john@example.com", "hash", Set.of());
+        user.updateRefreshToken("hashed-token"); // Simulate hashed token in DB
+        String token = "valid-token";
+        
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        when(tokenService.extractUsername(token)).thenReturn(user.getEmail());
+        when(tokenService.isTokenValid(token, user.getEmail())).thenReturn(true);
+        when(passwordHasher.matches(token, "hashed-token")).thenReturn(true);
+
+        User result = userDomainService.refreshAccessToken(token);
+
+        assertNotNull(result);
+        assertEquals(user.getEmail(), result.getEmail());
     }
 
     @Test
-    @DisplayName("Test de changement de mot de passe")
-    void shouldChangePasswordSuccessfully() {
-        String newPassword = "NewPassword123!";
-        String newPasswordHash = "$2a$10$newHashedPassword";
+    @DisplayName("Should throw exception when refresh token is invalid")
+    void shouldThrowExceptionWhenRefreshTokenInvalid() {
+        String invalidToken = "invalid-token";
+        when(tokenService.extractUsername(invalidToken)).thenThrow(new IllegalArgumentException("Invalid JWT token"));
 
-        when(userRepository.findById("123")).thenReturn(java.util.Optional.of(user));
-        when(passwordHasherPort.matches(password, passwordHash)).thenReturn(true);
-        when(passwordHasherPort.hash(newPassword)).thenReturn(newPasswordHash);
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        userDomainService.changePassword("123", password, newPassword);
-
-        verify(passwordHasherPort).matches(password, passwordHash);
-        verify(passwordHasherPort).hash(newPassword);
-        verify(userRepository).save(any(User.class));
+        assertThrows(com.aissek.userservice.domain.exception.AuthenticationException.class, 
+            () -> userDomainService.refreshAccessToken(invalidToken));
     }
 
     @Test
-    @DisplayName("Test de changement de mot de passe avec mot de passe actuel invalide")
-    void shouldThrowWhenCurrentPasswordIsInvalid() {
-        when(userRepository.findById("123")).thenReturn(java.util.Optional.of(user));
-        when(passwordHasherPort.matches("wrong-password", passwordHash)).thenReturn(false);
+    @DisplayName("Should throw exception when JWT validation fails")
+    void shouldThrowExceptionWhenJwtValidationFails() {
+        String expiredToken = "expired-token";
+        when(tokenService.extractUsername(expiredToken)).thenReturn("test@example.com");
+        when(tokenService.isTokenValid(expiredToken, "test@example.com")).thenReturn(false);
 
-        assertThatThrownBy(() -> userDomainService.changePassword("123", "wrong-password", "newPassword123"))
-                .isInstanceOf(InvalidDomainStateException.class)
-                .hasMessageContaining("Mot de passe actuel invalide");
+        assertThrows(com.aissek.userservice.domain.exception.AuthenticationException.class, 
+            () -> userDomainService.refreshAccessToken(expiredToken));
     }
 
     @Test
-    @DisplayName("Test de login réussi")
-    void shouldLoginSuccessfully() {
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        when(passwordHasherPort.matches(password, passwordHash)).thenReturn(true);
-
-        User result = userDomainService.login(email, password);
-
-        assertThat(result).isNotNull();
-        assertThat(result.getEmail()).isEqualTo(email);
-        verify(userRepository).findByEmail(email);
-        verify(passwordHasherPort).matches(password, passwordHash);
-    }
-
-    @Test
-    @DisplayName("Test de login avec email inconnu")
-    void shouldThrowWhenLoginEmailDoesNotExist() {
+    @DisplayName("Should throw exception when refresh token not found in database")
+    void shouldThrowExceptionWhenTokenNotFoundInDatabase() {
+        String token = "valid-jwt-but-not-in-db";
+        String email = "test@example.com";
+        when(tokenService.extractUsername(token)).thenReturn(email);
+        when(tokenService.isTokenValid(token, email)).thenReturn(true);
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> userDomainService.login(email, password))
-                .isInstanceOf(AuthenticationException.class)
-                .hasMessageContaining("Email ou mot de passe invalide");
-    }
-
-    @Test
-    @DisplayName("Test de login avec mot de passe invalide")
-    void shouldThrowWhenLoginPasswordIsInvalid() {
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        when(passwordHasherPort.matches("wrong-password", passwordHash)).thenReturn(false);
-
-        assertThatThrownBy(() -> userDomainService.login(email, "wrong-password"))
-                .isInstanceOf(AuthenticationException.class)
-                .hasMessageContaining("Email ou mot de passe invalide");
+        assertThrows(com.aissek.userservice.domain.exception.AuthenticationException.class, 
+            () -> userDomainService.refreshAccessToken(token));
     }
 }

@@ -3,6 +3,8 @@ package com.aissek.userservice.adapter.in.web.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
+import java.util.Set;
+
 /**
  * Request payload used to update user profile data.
  */
@@ -12,6 +14,7 @@ public record UpdateUserRequest(
         @NotBlank(message = "email must not be blank")
         @Email(message = "email must be a well-formed email address")
         String email,
-        java.util.List<String> groupIds
+        Set<String> groupIds,
+        Set<String> roleIds
 ) {
 }

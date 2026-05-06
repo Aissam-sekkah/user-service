@@ -33,16 +33,21 @@ user-service/
 |       |____model/
 |       |       |____user.java
 |       |       |____group.java
+|       |       |____role.java
 |       |____Port/
 |       |       |____in/
 |       |       |     |_____UserUseCase.java
 |       |       |     |_____GroupUseCase.java
+|       |       |     |_____RoleUseCase.java
 |       |       |____out/
 |       |       |     |_____UserRepositoryPort.java
 |       |       |     |_____GroupRepositoryPort.java
+|       |       |     |_____RoleRepositoryPort.java
+|       |       |     |_____TokenServicePort.java
 |       |____service/
 |               |____UserDomainService.java
 |               |____GroupDomainService.java
+|               |____RoleDomainService.java
 |
 |______application/
 |        |______UserServiceApplication.java
@@ -52,27 +57,35 @@ user-service/
 |       |       |____web/
 |       |       |       |_______ UserController.java
 |       |       |       |_______ GroupController.java
+|       |       |       |_______ RoleController.java
 |       |       |       |_______ dto/
 |       |       |       |         |_____UserRequest.java
 |       |       |       |         |_____UserResponse.java
 |       |       |       |         |_____GroupRequest.java
 |       |       |       |         |_____GroupResponse.java
+|       |       |       |         |_____RoleRequest.java
+|       |       |       |         |_____RoleResponse.java
 |       |       |       |_______ mapper/
 |       |       |       |         |UserWebMapper.java
 |       |       |       |         |GroupWebMapper.java
+|       |       |       |         |RoleWebMapper.java
 |       |_______out/
 |       |       |____persistence/
 |       |       |       |_______ UserPersistenceAdapter.java
 |       |       |       |_______ GroupPersistenceAdapter.java
+|       |       |       |_______ RolePersistenceAdapter.java
 |       |       |       |_______ entity/
 |       |       |       |         |_____UserEntity.java
 |       |       |       |         |_____GroupEntity.java
+|       |       |       |         |_____RoleEntity.java
 |       |       |       |_______ repository/
 |       |       |       |         |_____UserJpaRepository.java
 |       |       |       |         |_____GroupJpaRepository.java
+|       |       |       |         |_____RoleJpaRepository.java
 |       |       |       |_______ mapper/
 |       |       |       |         |_____UserPersistenceMapper.java
 |       |       |       |         |_____GroupPersistenceMapper.java
+|       |       |       |         |_____RolePersistenceMapper.java
 |
 |______config/
 |       |_______BeanConfig.java
@@ -188,6 +201,15 @@ You can explore all endpoints, test requests, and see the required JSON formats 
 - `GET /api/v1/groups/{id}` returns one group by id
 - `DELETE /api/v1/groups/{id}` deletes a group
 
+### Roles API (Base URL: http://localhost:8080/api/v1/roles)
+
+- `POST /api/v1/roles` creates a new role
+- `GET /api/v1/roles` returns all roles
+- `PUT /api/v1/roles/user/{userId}/{roleId}` assigns a role to a specific user
+- `PUT /api/v1/roles/group/{groupId}/{roleId}` assigns a role to a group (all group members inherit this role)
+- `DELETE /api/v1/roles/user/{userId}/{roleId}` removes a direct role assignment
+- `DELETE /api/v1/roles/group/{groupId}/{roleId}` removes a role from a group
+
 ### Examples for Users
 
 1. Create a user:
@@ -201,6 +223,24 @@ curl -X POST http://localhost:8080/api/v1/users \
 ```bash
 curl http://localhost:8080/api/v1/users
 ```
+
+## Role Management & Authorization (RBAC)
+
+The system implements a professional Role-Based Access Control (RBAC) model:
+
+### The Hierarchy
+`User` $\to$ `Group` $\to$ `Role`
+
+1. **Direct Assignment**: A Role can be assigned directly to a User.
+2. **Group Assignment**: A Role can be assigned to a Group.
+3. **Inheritance**: Any User who is a member of a Group automatically inherits all Roles assigned to that Group.
+
+### Effective Roles
+The system calculates **Effective Roles** as the union of:
+$$\text{Effective Roles} = (\text{Directly Assigned Roles}) \cup (\text{Roles of all Groups the User belongs to})$$
+
+### Token-Based Security
+The `Effective Roles` are calculated at login and embedded into the JWT token under the `roles` claim. This allows other microservices to verify permissions statelessly without querying the user-service.
 
 ## Request flow in port and adapter architecture
 
@@ -219,45 +259,45 @@ The critical rule is simple:
 
 ### Main components and responsibilities
 
-`UserController` & `GroupController`
+`UserController`, `GroupController` & `RoleController`
 
 - entry point for HTTP traffic
 - reads request data from JSON and path variables
-- calls the inbound ports `UserUseCase` / `GroupUseCase`
+- calls the inbound ports `UserUseCase` / `GroupUseCase` / `RoleUseCase`
 - maps the domain model to the HTTP response DTO
 - contains no business rules
 
-`UserUseCase` & `GroupUseCase`
+`UserUseCase`, `GroupUseCase` & `RoleUseCase`
 
 - inbound ports
 - define what the application exposes to external clients
 - are the contracts that the web adapter is allowed to call
 
-`UserDomainService` & `GroupDomainService`
+`UserDomainService`, `GroupDomainService` & `RoleDomainService`
 
 - implementation of the inbound ports
 - contain business logic and orchestration rules
 - decide when to create, read, update or delete entities
 - raise business exceptions
 
-`UserRepositoryPort` & `GroupRepositoryPort`
+`UserRepositoryPort`, `GroupRepositoryPort` & `RoleRepositoryPort`
 
 - outbound ports
 - define what the domain needs from persistence
 - hide JPA and PostgreSQL details from the domain
 
-`UserPersistenceAdapter` & `GroupPersistenceAdapter`
+`UserPersistenceAdapter`, `GroupPersistenceAdapter` & `RolePersistenceAdapter`
 
 - implementation of the outbound ports
 - translate domain operations into repository calls
 - delegate to Spring Data JPA
 
-`UserJpaRepository` & `GroupJpaRepository`
+`UserJpaRepository`, `GroupJpaRepository` & `RoleJpaRepository`
 
 - technical persistence interfaces
 - execute SQL through JPA/Hibernate
 
-`UserWebMapper`, `GroupWebMapper`, `UserPersistenceMapper`, `GroupPersistenceMapper`
+`UserWebMapper`, `GroupWebMapper`, `RoleWebMapper`, `UserPersistenceMapper`, `GroupPersistenceMapper`, `RolePersistenceMapper`
 
 - isolate transformations between layers
 - prevent HTTP DTOs or JPA entities from leaking into the domain model
@@ -308,11 +348,11 @@ This separation gives real engineering benefits:
 
 When onboarding, follow this order:
 
-1. Start from `UserController` and `GroupController` to understand the public API.
-2. Open `UserUseCase` and `GroupUseCase` to see the application contract.
-3. Read `UserDomainService` and `GroupDomainService` to understand business rules.
-4. Open `UserRepositoryPort` and `GroupRepositoryPort` to see what the domain expects from persistence.
-5. Read `UserPersistenceAdapter` and `GroupPersistenceAdapter` to understand how data is stored.
+1. Start from `UserController`, `GroupController` and `RoleController` to understand the public API.
+2. Open `UserUseCase`, `GroupUseCase` and `RoleUseCase` to see the application contract.
+3. Read `UserDomainService`, `GroupDomainService` and `RoleDomainService` to understand business rules.
+4. Open `UserRepositoryPort`, `GroupRepositoryPort` and `RoleRepositoryPort` to see what the domain expects from persistence.
+5. Read `UserPersistenceAdapter`, `GroupPersistenceAdapter` and `RolePersistenceAdapter` to understand how data is stored.
 6. Read the mappers last to understand object translation between layers.
 
 If you follow this order, the separation of concerns becomes much easier to reason about than reading the project package by package.

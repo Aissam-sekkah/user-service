@@ -11,8 +11,8 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/userdb
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: secret
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:secret}
 
 # JPA Hibernate
   jpa:
@@ -22,8 +22,13 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   springdoc:
     packages-to-scan: com.aissek.userservice.adapter.in.web
+    swagger-ui:
+      path: /swagger-ui
+    api-docs:
+      path: /v3/api-docs
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -36,9 +41,9 @@ spring:
 logging:
   level:
     root: info
-    com.aissek.userservice: DEBUG
-    org.hibernate.sql: DEBUG
-    org.hibernate.type.descriptor.sql: TRACE
+    com.aissek.userservice: INFO
+    org.hibernate.sql: WARN
+    org.hibernate.type.descriptor.sql: WARN
 
 # ACTUATOR & MONITORING
 management:
@@ -52,3 +57,13 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+
+# Security Configuration
+application:
+  security:
+    jwt:
+      # ⚠️ CRITICAL: MUST be set as environment variable in production
+      # Never commit secrets to version control
+      secret: ${JWT_SECRET:S8vP2qWzL5mR9xT1yU4iO7pA3sD6fG9hJ2kL5zX8cV1bN4mQ7wE0rT3yU6iI9oP2}
+      expiration: ${JWT_EXPIRATION:3600000}             # 1 hour (access token)
+      refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7 days (refresh token)

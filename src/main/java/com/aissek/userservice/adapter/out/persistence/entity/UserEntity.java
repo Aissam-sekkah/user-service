@@ -39,6 +39,10 @@ public class UserEntity {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    @Setter
+    @Column(name = "refresh_token")
+    private String refreshToken;
+
     @ManyToMany
     @JoinTable(
             name = "user_groups",
@@ -46,6 +50,14 @@ public class UserEntity {
             inverseJoinColumns = @JoinColumn(name = "group_id")
     )
     private Set<GroupEntity> groups = new HashSet<GroupEntity>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<RoleEntity> directRoles = new HashSet<RoleEntity>();
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

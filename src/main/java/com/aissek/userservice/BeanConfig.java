@@ -3,6 +3,8 @@ package com.aissek.userservice;
 
 import com.aissek.userservice.adapter.out.persistence.mapper.UserPersistenceMapper;
 import com.aissek.userservice.adapter.out.persistence.repository.UserJpaRepository;
+import com.aissek.userservice.adapter.out.security.JwtService;
+import com.aissek.userservice.config.AuditConfig.AuditLogger;
 import com.aissek.userservice.domain.model.User;
 import com.aissek.userservice.domain.port.in.GroupUseCase;
 import com.aissek.userservice.domain.port.in.UserUseCase;
@@ -33,8 +35,8 @@ public class BeanConfig {
     }
 
     @Bean
-    public UserUseCase UserUseCase(UserRepositoryPort userRepositoryPort, PasswordHasherPort passwordHasherPort, GroupRepositoryPort groupRepositoryPort){
-        return new UserDomainService(userRepositoryPort, passwordHasherPort, groupRepositoryPort);
+    public UserUseCase UserUseCase(UserRepositoryPort userRepositoryPort, PasswordHasherPort passwordHasherPort, GroupRepositoryPort groupRepositoryPort, JwtService jwtService, AuditLogger auditLogger){
+        return new UserDomainService(userRepositoryPort, passwordHasherPort, groupRepositoryPort, jwtService, auditLogger);
     }
 
     @Bean
@@ -43,13 +45,18 @@ public class BeanConfig {
     }
 
     @Bean
+    public com.aissek.userservice.domain.port.in.RoleUseCase RoleUseCase(com.aissek.userservice.domain.port.out.RoleRepositoryPort roleRepositoryPort, UserRepositoryPort userRepositoryPort, GroupRepositoryPort groupRepositoryPort){
+        return new com.aissek.userservice.domain.service.RoleDomainService(roleRepositoryPort, userRepositoryPort, groupRepositoryPort);
+    }
+
+    @Bean
     @org.springframework.context.annotation.Profile("!test")
     CommandLineRunner initDatabase(
             UserJpaRepository repository,
             PasswordHasherPort passwordHasherPort,
+            UserPersistenceMapper mapper,
             ObjectProvider<Flyway> flywayProvider
     ) {
-        UserPersistenceMapper mapper = new UserPersistenceMapper();
         return args -> {
             flywayProvider.ifAvailable(Flyway::migrate);
             if (repository.count() == 0) {

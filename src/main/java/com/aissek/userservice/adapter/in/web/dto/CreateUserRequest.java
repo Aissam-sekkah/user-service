@@ -4,6 +4,8 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import java.util.Set;
+
 /**
  * Request payload used to create a user with credentials.
  */
@@ -15,6 +17,8 @@ public record CreateUserRequest(
         String email,
         @NotBlank(message = "password must not be blank")
         @Size(min = 8, message = "password must be at least 8 characters")
-        String password
+        String password,
+        Set<String> groupIds,
+        Set<String> roleIds
 ) {
 }

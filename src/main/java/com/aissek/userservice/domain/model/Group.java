@@ -11,6 +11,7 @@ public class Group {
     private final String id;
     private String name;
     private String description;
+    private java.util.Set<Role> roles;
     private final LocalDateTime createdAt;
 
     // Constructeur de création (Génère l'ID)
@@ -18,15 +19,21 @@ public class Group {
         this.id = UUID.randomUUID().toString();
         this.name = name;
         this.description = description;
+        this.roles = new java.util.HashSet<>();
         this.createdAt = LocalDateTime.now();
     }
 
     // Constructeur de reconstitution depuis la bdd
-    public Group(String id, String name, String description, LocalDateTime createdAt){
+    public Group(String id, String name, String description, java.util.Set<Role> roles, LocalDateTime createdAt){
         this.id = id;
         this.name = name;
         this.description = description;
+        this.roles = roles;
         this.createdAt = createdAt;
+    }
+
+    public void assignRoles(java.util.Set<Role> roles) {
+        this.roles = roles;
     }
 
     // regle métier encapsuler
