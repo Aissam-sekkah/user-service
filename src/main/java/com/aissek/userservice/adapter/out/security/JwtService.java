@@ -68,23 +68,11 @@ public class JwtService implements com.aissek.userservice.domain.port.out.TokenS
                 .compact();
     }
 
-    public String generateToken(String username, java.util.Set<String> roles) {
-        Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("roles", roles);
-        return Jwts.builder()
-                .claims(extraClaims)
-                .subject(username)
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
-                .signWith(getSigningKey())
-                .compact();
-    }
-
     public String generateRefreshToken(String username) {
         return Jwts.builder()
-                .setSubject(username)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + refreshExpiration))
+                .subject(username)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + refreshExpiration))
                 .signWith(getSigningKey())
                 .compact();
     }

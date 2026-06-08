@@ -16,7 +16,7 @@ public record CreateUserRequest(
         @Email(message = "email must be a well-formed email address")
         String email,
         @NotBlank(message = "password must not be blank")
-        @Size(min = 8, message = "password must be at least 8 characters")
+        @Size(min = 8, max = 72, message = "password must be between 8 and 72 characters")
         String password,
         Set<String> groupIds,
         Set<String> roleIds

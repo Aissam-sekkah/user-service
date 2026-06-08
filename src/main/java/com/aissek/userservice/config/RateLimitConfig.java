@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Rate Limiting Filter to prevent brute-force attacks on authentication endpoints.
@@ -44,15 +45,15 @@ public class RateLimitConfig {
      */
     private static class RateLimitingFilter implements Filter {
         
-        private final LoadingCache<String, Integer> requestCountsPerIp;
+        private final LoadingCache<String, AtomicInteger> requestCountsPerIp;
 
         public RateLimitingFilter() {
             requestCountsPerIp = CacheBuilder.newBuilder()
                     .expireAfterWrite(RATE_LIMIT_WINDOW_SECONDS, TimeUnit.SECONDS)
-                    .build(new CacheLoader<String, Integer>() {
+                    .build(new CacheLoader<String, AtomicInteger>() {
                         @Override
-                        public Integer load(String key) {
-                            return 0;
+                        public AtomicInteger load(String key) {
+                            return new AtomicInteger(0);
                         }
                     });
         }
@@ -72,10 +73,9 @@ public class RateLimitConfig {
             }
 
             String clientIp = getClientIp(httpRequest);
-            int requests = requestCountsPerIp.getUnchecked(clientIp);
-            requestCountsPerIp.put(clientIp, requests + 1);
+            int requests = requestCountsPerIp.getUnchecked(clientIp).incrementAndGet();
 
-            if (requests >= MAX_REQUESTS_PER_MINUTE) {
+            if (requests > MAX_REQUESTS_PER_MINUTE) {
                 log.warn("Rate limit exceeded for IP: {}. Blocked request to: {}", clientIp, requestURI);
                 
                 httpResponse.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
@@ -88,25 +88,21 @@ public class RateLimitConfig {
                 return;
             }
 
-            log.debug("Rate limit check passed for IP: {} ({} requests)", clientIp, requests + 1);
+            log.debug("Rate limit check passed for IP: {} ({} requests)", clientIp, requests);
             chain.doFilter(request, response);
         }
 
         /**
-         * Extract client IP address, handling proxied requests.
+         * Resolve the client IP from the servlet container.
+         *
+         * We deliberately do NOT read X-Forwarded-For / X-Real-IP directly here:
+         * those headers are attacker-controlled and would let a client trivially
+         * bypass rate limiting by rotating spoofed values. When deployed behind a
+         * trusted proxy, configure {@code server.forward-headers-strategy} (already
+         * set to "framework" in the prod profile) so the container populates
+         * {@code getRemoteAddr()} from the validated forwarded headers.
          */
         private String getClientIp(HttpServletRequest request) {
-            String xForwardedFor = request.getHeader("X-Forwarded-For");
-            if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-                // X-Forwarded-For can contain multiple IPs, take the first one
-                return xForwardedFor.split(",")[0].trim();
-            }
-            
-            String xRealIp = request.getHeader("X-Real-IP");
-            if (xRealIp != null && !xRealIp.isEmpty()) {
-                return xRealIp;
-            }
-            
             return request.getRemoteAddr();
         }
 

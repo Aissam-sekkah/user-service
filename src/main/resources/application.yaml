@@ -12,13 +12,14 @@ spring:
     url: jdbc:postgresql://localhost:5432/userdb
     driver-class-name: org.postgresql.Driver
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:secret}
+    # No insecure default: provide DB_PASSWORD via environment (see docker-compose / deployment).
+    password: ${DB_PASSWORD:}
 
 # JPA Hibernate
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: false
@@ -53,7 +54,7 @@ management:
         include: "health,prometheus,info,metrics"
   endpoint:
     health:
-      show-details: always
+      show-details: when_authorized
   metrics:
     tags:
       application: ${spring.application.name}
@@ -62,8 +63,9 @@ management:
 application:
   security:
     jwt:
-      # ⚠️ CRITICAL: MUST be set as environment variable in production
-      # Never commit secrets to version control
-      secret: ${JWT_SECRET:S8vP2qWzL5mR9xT1yU4iO7pA3sD6fG9hJ2kL5zX8cV1bN4mQ7wE0rT3yU6iI9oP2}
+      # ⚠️ CRITICAL: MUST be set as environment variable (min 32 chars).
+      # No default is provided on purpose: startup fails fast if JWT_SECRET is unset
+      # (validated in JwtService#validateSecretKey). Never commit secrets to version control.
+      secret: ${JWT_SECRET:}
       expiration: ${JWT_EXPIRATION:3600000}             # 1 hour (access token)
       refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7 days (refresh token)
