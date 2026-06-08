@@ -1,6 +1,7 @@
 package com.aissek.userservice.adapter.in.web.exception;
 
 import com.aissek.userservice.domain.exception.*;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -39,10 +40,19 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException exception) {
-        // If it's a JWT error, return 401, otherwise return 400
-        HttpStatus status = exception.getMessage().contains("JWT") ? HttpStatus.UNAUTHORIZED : HttpStatus.BAD_REQUEST;
+        // If it's a JWT error, return 401, otherwise return 400 (message may be null)
+        String message = String.valueOf(exception.getMessage());
+        HttpStatus status = message.contains("JWT") ? HttpStatus.UNAUTHORIZED : HttpStatus.BAD_REQUEST;
         return ResponseEntity.status(status)
                 .body(ProblemDetail.forStatusAndDetail(status, exception.getMessage()));
+    }
+
+    // Covers Spring Security's AuthorizationDeniedException (@PreAuthorize) which extends this.
+    // Without it, authorization failures fall through to the generic handler and leak as 500.
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Access is denied"));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
