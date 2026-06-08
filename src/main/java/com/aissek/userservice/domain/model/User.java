@@ -63,7 +63,8 @@ public class User {
     }
 
     public void assignDirectRoles(Set<Role> roles) {
-        this.directRoles = roles;
+        // Defensive copy so external mutation of the passed set can't leak into the aggregate.
+        this.directRoles = (roles != null) ? new HashSet<>(roles) : new HashSet<>();
     }
 
     // regle métier encapsuler

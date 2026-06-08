@@ -4,9 +4,9 @@ import com.aissek.userservice.adapter.in.web.dto.CreateUserRequest;
 import com.aissek.userservice.adapter.in.web.dto.LoginRequest;
 import com.aissek.userservice.adapter.in.web.dto.TokenResponse;
 import com.aissek.userservice.adapter.in.web.dto.RefreshRequest;
-import com.aissek.userservice.adapter.out.security.JwtService;
 import com.aissek.userservice.domain.model.Role;
 import com.aissek.userservice.domain.port.in.UserUseCase;
+import com.aissek.userservice.domain.port.out.TokenServicePort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +27,7 @@ import java.util.Set;
 public class AuthController {
 
     private final UserUseCase userUseCase;
-    private final JwtService jwtService;
+    private final TokenServicePort jwtService;
 
     @Value("${application.security.jwt.expiration:3600000}")
     private long accessTokenExpiration;

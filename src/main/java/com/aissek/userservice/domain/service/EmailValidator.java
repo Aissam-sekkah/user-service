@@ -8,9 +8,12 @@ import java.util.regex.Pattern;
  */
 public class EmailValidator {
     
-    // RFC 5322 compliant regex
+    // Pragmatic email validation: non-empty local part (no leading/trailing/consecutive dots),
+    // a domain, and a TLD of at least two letters. Rejects inputs like "a@b" or "user@host".
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
-        "^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+$"
+        "^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*" +
+        "@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*" +
+        "\\.[A-Za-z]{2,}$"
     );
 
     public static void validate(String email) {
