@@ -146,7 +146,7 @@ class UserControllerTest {
     }
 
     @Test
-    @org.springframework.security.test.context.support.WithMockUser(roles = "USER")
+    @org.springframework.security.test.context.support.WithMockUser(roles = "MANAGER")
     void shouldReturnUserById() throws Exception {
         mockMvc.perform(get(BASE_URL + "/" + existingUser.getId()))
                 .andExpect(status().isOk())
@@ -157,7 +157,7 @@ class UserControllerTest {
     }
 
     @Test
-    @org.springframework.security.test.context.support.WithMockUser(roles = "USER")
+    @org.springframework.security.test.context.support.WithMockUser(roles = "MANAGER")
     void shouldReturnAllUsers() throws Exception {
         adapter.save(new User("Sara", "sara@gmail.com", passwordEncoder.encode("password456"), null));
 
@@ -271,7 +271,7 @@ class UserControllerTest {
                                 {"name":"Ali","email":"ali@example.com","password":"short"}
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value(containsString("password: password must be at least 8 characters")))
+                .andExpect(jsonPath("$.detail").value(containsString("password: password must be between 8 and 72 characters")))
                 .andExpect(jsonPath("$.status").value(400));
     }
 
@@ -325,7 +325,7 @@ class UserControllerTest {
     }
 
     @Test
-    @org.springframework.security.test.context.support.WithMockUser(roles = "USER")
+    @org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
     void shouldChangePassword() throws Exception {
         mockMvc.perform(put(BASE_URL + "/" + existingUser.getId() + "/password")
                         .contentType(APPLICATION_JSON)
@@ -340,7 +340,7 @@ class UserControllerTest {
     }
 
     @Test
-    @org.springframework.security.test.context.support.WithMockUser(roles = "USER")
+    @org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
     void shouldLoginWithNewPasswordOnlyAfterPasswordChange() throws Exception {
         mockMvc.perform(put(BASE_URL + "/" + existingUser.getId() + "/password")
                         .contentType(APPLICATION_JSON)
@@ -369,6 +369,7 @@ class UserControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
     void shouldReturnBadRequestWhenCurrentPasswordIsInvalid() throws Exception {
         mockMvc.perform(put(BASE_URL + "/" + existingUser.getId() + "/password")
                         .contentType(APPLICATION_JSON)
@@ -388,7 +389,7 @@ class UserControllerTest {
                                 {"currentPassword":"password123","newPassword":"short"}
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value(containsString("newPassword: newPassword must be at least 8 characters")))
+                .andExpect(jsonPath("$.detail").value(containsString("newPassword: newPassword must be between 8 and 72 characters")))
                 .andExpect(jsonPath("$.status").value(400));
     }
 
@@ -405,6 +406,7 @@ class UserControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
     void shouldReturnNotFoundWhenChangingPasswordForUnknownUser() throws Exception {
         mockMvc.perform(put(BASE_URL + "/missing-id/password")
                         .contentType(APPLICATION_JSON)
@@ -417,7 +419,7 @@ class UserControllerTest {
     }
 
     @Test
-    @org.springframework.security.test.context.support.WithMockUser(roles = "USER")
+    @org.springframework.security.test.context.support.WithMockUser(roles = "MANAGER")
     void shouldReturnNotFoundWhenUserDoesNotExist() throws Exception {
         mockMvc.perform(get(BASE_URL + "/missing-id"))
                 .andExpect(status().isNotFound())

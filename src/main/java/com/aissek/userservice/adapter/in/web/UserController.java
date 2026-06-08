@@ -73,7 +73,7 @@ public class UserController {
      * Return existing User by id - Any authenticated user can see a profile
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('MANAGER') or @authz.isSelf(authentication, #id)")
     public ResponseEntity<UserResponse> getById(@PathVariable String id){
         log.debug("REST request to get user by ID: {}", id);
         return ResponseEntity.status(HttpStatus.OK).body(mapper.toResponse(userUseCase.getUserById(id)));
@@ -84,7 +84,7 @@ public class UserController {
      * @return
      */
     @GetMapping
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<List<UserResponse>> getAll(){
         var allUsers = userUseCase.getAllUsers();
         return ResponseEntity.status(HttpStatus.OK).body(allUsers.stream().map(mapper::toResponse).toList());
@@ -122,6 +122,7 @@ public class UserController {
      * Change the password of an existing user
      */
     @PutMapping("/{id}/password")
+    @PreAuthorize("hasRole('ADMIN') or @authz.isSelf(authentication, #id)")
     public ResponseEntity<Void> changePassword(@PathVariable String id, @Valid @RequestBody ChangePasswordRequest request) {
         log.info("REST request to change password for user ID: {}", id);
         userUseCase.changePassword(id, request.currentPassword(), request.newPassword());

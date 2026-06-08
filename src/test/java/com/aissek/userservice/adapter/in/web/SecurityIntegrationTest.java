@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -111,7 +112,8 @@ class SecurityIntegrationTest {
         String token = jwtService.generateToken(email);
         
         User dummyUser = new User("Test", email, "hashed_pw", Set.of());
-        dummyUser.assignDirectRoles(Set.of(new com.aissek.userservice.domain.model.Role("role-user", "ROLE_USER", "Standard User Role")));
+        // GET /api/v1/users (listing) requires MANAGER+; a plain USER is intentionally denied.
+        dummyUser.assignDirectRoles(Set.of(new com.aissek.userservice.domain.model.Role("role-manager", "ROLE_MANAGER", "Manager Role")));
         when(userRepositoryPort.findByEmail(email)).thenReturn(Optional.of(dummyUser));
         
         mockMvc.perform(get("/api/v1/users")
@@ -132,5 +134,39 @@ class SecurityIntegrationTest {
     void swaggerShouldBePublic() throws Exception {
         mockMvc.perform(get("/swagger-ui/index.html"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("A plain USER can change their OWN password")
+    void userCanChangeOwnPassword() throws Exception {
+        String email = "owner@example.com";
+        String token = jwtService.generateToken(email);
+
+        User owner = new User("Owner", email, "hashed_pw", Set.of());
+        owner.assignDirectRoles(Set.of(new com.aissek.userservice.domain.model.Role("role-user", "ROLE_USER", "Standard User Role")));
+        when(userRepositoryPort.findByEmail(email)).thenReturn(Optional.of(owner));
+
+        mockMvc.perform(put("/api/v1/users/" + owner.getId() + "/password")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"currentPassword\":\"Password123!\",\"newPassword\":\"NewPassword123!\"}"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("A plain USER cannot change ANOTHER user's password")
+    void userCannotChangeOthersPassword() throws Exception {
+        String email = "owner@example.com";
+        String token = jwtService.generateToken(email);
+
+        User owner = new User("Owner", email, "hashed_pw", Set.of());
+        owner.assignDirectRoles(Set.of(new com.aissek.userservice.domain.model.Role("role-user", "ROLE_USER", "Standard User Role")));
+        when(userRepositoryPort.findByEmail(email)).thenReturn(Optional.of(owner));
+
+        mockMvc.perform(put("/api/v1/users/some-other-user-id/password")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"currentPassword\":\"Password123!\",\"newPassword\":\"NewPassword123!\"}"))
+                .andExpect(status().isForbidden());
     }
 }

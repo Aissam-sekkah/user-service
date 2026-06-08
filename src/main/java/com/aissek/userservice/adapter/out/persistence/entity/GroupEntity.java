@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -30,7 +32,7 @@ public class GroupEntity {
             joinColumns = @JoinColumn(name = "group_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
-    private java.util.Set<RoleEntity> roles = new java.util.HashSet<>();
+    private Set<RoleEntity> roles = new HashSet<>();
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

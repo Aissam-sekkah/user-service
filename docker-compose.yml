@@ -5,8 +5,9 @@ services:
     restart: always
     environment:
       - POSTGRES_DB=userdb
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=secret
+      - POSTGRES_USER=${DB_USERNAME:-postgres}
+      # Set DB_PASSWORD in a local .env file (not committed). Falls back for throwaway local use only.
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?DB_PASSWORD must be set}
     ports:
       - "5432:5432"
     volumes:
@@ -19,8 +20,10 @@ services:
       - "8080:8080"
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/userdb
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=secret
+      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:?DB_PASSWORD must be set}
+      # JWT_SECRET must be provided (min 32 chars); app refuses to start otherwise.
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set}
     depends_on:
       - db
 
