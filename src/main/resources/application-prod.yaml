@@ -46,6 +46,14 @@ application:
       expiration: ${JWT_EXPIRATION:3600000}
       refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
+# Initial admin bootstrap — creates a ROLE_ADMIN account on first start if it
+# does not already exist. Leave unset to disable. Password must satisfy the
+# complexity policy (>=8 chars, letter+digit+special).
+app:
+  bootstrap:
+    admin-email: ${APP_BOOTSTRAP_ADMIN_EMAIL:}
+    admin-password: ${APP_BOOTSTRAP_ADMIN_PASSWORD:}
+
 # CORS Configuration - Restrict to your frontend domains
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:https://yourdomain.com}

@@ -55,5 +55,35 @@ Status legend: ⬜ TODO · 🔄 In progress · ✅ Done · ⏭️ Skipped
 
 ## Follow-ups / out of scope
 - Rotate the previously-committed JWT secret in any environment where it was used.
-- Consider Redis-backed distributed rate limiting + account lockout (currently per-instance IP throttle only).
+- Consider Redis-backed distributed rate limiting (currently per-instance IP throttle only).
 - Consider refresh-token reuse detection (revoke session on replay of a rotated token).
+
+---
+
+# Second Review — Functional gaps & code quality (2026-06-21)
+
+Findings from a follow-up architecture/code review. Resolved critical → low.
+Status legend: ⬜ TODO · 🔄 In progress · ✅ Done · ⏭️ Skipped
+
+## 🔴 Critical
+- ⬜ **N1. No admin bootstrap.** Admin-only endpoints (`POST /users`, role mgmt, delete) require `ROLE_ADMIN`, but the seeded `admin@example.com`/`staff@example.com` get **no roles** and no migration assigns any → a fresh deploy has nobody who can administer the system. Also demo passwords (`admin12345`/`staff12345`) were seeded in **prod** (`@Profile("!test")`).
+  - Fix: assign `ROLE_ADMIN`/`ROLE_MANAGER` to seed users; restrict demo seeding to `dev`; add env-driven prod admin bootstrap (`INITIAL_ADMIN_EMAIL`/`INITIAL_ADMIN_PASSWORD`).
+
+## 🟠 High
+- ⬜ **N3. No logout / token revocation.** `LOGOUT`/`ACCOUNT_LOCKED` audit types defined but unused; no way to invalidate a refresh token server-side. Add `POST /auth/logout`.
+- ⬜ **N4. No account lockout.** Failed logins audited but never counted/locked; `isAccountNonLocked()` hardcoded `true`. Add attempt counter + temporary lock.
+- ⬜ **N5. `updateUser` has no email-conflict check.** `createUser` guards `existByEmail`; `updateUser` does not → relies on raw DB constraint (500) when changing to an in-use email.
+
+## 🟡 Medium
+- ⬜ **N6. `@Async` no-op.** `AuditLogger` is `@Async` but no `@EnableAsync` → audit runs on the request thread. Enable async with a bounded executor.
+- ⬜ **N7. Audit IP always "unknown".** Rich overload never called; resolve client IP from the request context.
+- ⬜ **N8. Refresh tokens bcrypt-hashed → 72-byte truncation** on JWTs. Switch to SHA-256 for opaque/long tokens.
+- ⏭️ **N9. Single refresh-token column = one session/user.** Left as-is (intentional single-session); logout now makes revocation possible. Revisit with a `refresh_tokens` table if multi-device is needed.
+- ⬜ **N10. No pagination on `GET /users`.** Loads & serializes every user. Add page/size.
+
+## 🟢 Low / Quality
+- ⬜ **N11.** Redundant manual `Flyway::migrate` in `BeanConfig` while `spring.flyway.enabled=true` — remove.
+- ⬜ **N12.** `GlobalExceptionHandler` routes JWT errors via `message.contains("JWT")` — use a dedicated exception type.
+- ⬜ **N13.** No optimistic locking (`@Version`) — add to entities.
+- ⬜ **N14.** No CI pipeline — add GitHub Actions to run the test suite.
+- ⬜ **N15.** `AuthController.register` builds a detached `Role` literal — fetch the seeded role instead.
