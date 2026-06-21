@@ -22,5 +22,6 @@ public interface UserUseCase {
     void        deleteUser(String id);
     void        updateRefreshToken(String id, String refreshToken);
     User        refreshAccessToken(String refreshToken);
+    void        logout(String id);
 
 }

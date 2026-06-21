@@ -4,6 +4,7 @@ import com.aissek.userservice.adapter.in.web.dto.CreateUserRequest;
 import com.aissek.userservice.adapter.in.web.dto.LoginRequest;
 import com.aissek.userservice.adapter.in.web.dto.TokenResponse;
 import com.aissek.userservice.adapter.in.web.dto.RefreshRequest;
+import com.aissek.userservice.adapter.out.security.UserSecurityDetails;
 import com.aissek.userservice.domain.model.Role;
 import com.aissek.userservice.domain.port.in.UserUseCase;
 import com.aissek.userservice.domain.port.out.TokenServicePort;
@@ -13,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Set;
@@ -89,11 +91,26 @@ public class AuthController {
         
         log.info("Token refresh successful for user: {}", user.getEmail());
         return ResponseEntity.ok(new TokenResponse(
-                newAccessToken, 
-                newRefreshToken, 
-                "Bearer", 
+                newAccessToken,
+                newRefreshToken,
+                "Bearer",
                 accessTokenExpiration,
                 refreshTokenExpiration
         ));
+    }
+
+    /**
+     * Revokes the caller's refresh token (server-side logout).
+     * Requires a valid access token; the JWT filter populates the principal even
+     * on this permit-all path.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@AuthenticationPrincipal UserSecurityDetails principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        log.info("Logout request for user: {}", principal.getUsername());
+        userUseCase.logout(principal.getUser().getId());
+        return ResponseEntity.noContent().build();
     }
 }

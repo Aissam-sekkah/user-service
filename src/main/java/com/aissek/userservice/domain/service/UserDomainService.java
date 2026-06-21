@@ -161,8 +161,19 @@ public class UserDomainService implements UserUseCase {
     @Transactional
     public void updateRefreshToken(String id, String refreshToken) {
         User user = getUserById(id);
-        user.updateRefreshToken(passwordHasher.hash(refreshToken));
+        user.updateRefreshToken(TokenHasher.sha256(refreshToken));
         userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void logout(String id) {
+        User user = getUserById(id);
+        user.updateRefreshToken(null);
+        userRepository.save(user);
+        log.info("User logged out: ID {}", id);
+        auditLogger.logAuditEvent(AuditEventType.LOGOUT, user.getId(), user.getEmail(),
+                true, "User logged out; refresh token revoked");
     }
 
     @Override
@@ -199,7 +210,7 @@ public class UserDomainService implements UserUseCase {
                     return new AuthenticationException("Invalid or expired refresh token");
                 });
         
-        if (!passwordHasher.matches(refreshToken, user.getRefreshToken())) {
+        if (!TokenHasher.matches(refreshToken, user.getRefreshToken())) {
             log.warn("Refresh token hash mismatch for user: {}", email);
             auditLogger.logAuditEvent(AuditEventType.TOKEN_REFRESH_FAILURE, user.getId(), email, 
                     false, "Token hash mismatch");
