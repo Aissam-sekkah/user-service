@@ -43,6 +43,14 @@ public class UserEntity {
     @Column(name = "refresh_token")
     private String refreshToken;
 
+    @Setter
+    @Column(name = "failed_login_attempts", nullable = false)
+    private int failedLoginAttempts;
+
+    @Setter
+    @Column(name = "lock_until")
+    private LocalDateTime lockedUntil;
+
     @ManyToMany
     @JoinTable(
             name = "user_groups",

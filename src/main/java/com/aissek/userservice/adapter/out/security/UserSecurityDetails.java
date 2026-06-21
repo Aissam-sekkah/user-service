@@ -51,7 +51,7 @@ public class UserSecurityDetails implements UserDetails {
     public boolean isAccountNonExpired() { return true; }
 
     @Override
-    public boolean isAccountNonLocked() { return true; }
+    public boolean isAccountNonLocked() { return !user.isLocked(); }
 
     @Override
     public boolean isCredentialsNonExpired() { return true; }
