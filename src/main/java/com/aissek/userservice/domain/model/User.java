@@ -22,6 +22,7 @@ public class User {
     private Set<Role> directRoles;
     private int failedLoginAttempts;
     private LocalDateTime lockedUntil;
+    private final Long version; // JPA optimistic-locking version; null for not-yet-persisted users
     private final LocalDateTime createdAt;
 
 
@@ -37,15 +38,16 @@ public class User {
         this.passwordHash = validatePasswordHash(passwordHash);
         this.failedLoginAttempts = 0;
         this.lockedUntil = null;
+        this.version = null;
     }
 
     // Constructeur de reconstitution depuis la bdd
     public User(String id, String name, String email, String passwordHash, String refreshToken, Set<Group> groups, Set<Role> directRoles, LocalDateTime createdAt){
-        this(id, name, email, passwordHash, refreshToken, groups, directRoles, 0, null, createdAt);
+        this(id, name, email, passwordHash, refreshToken, groups, directRoles, 0, null, null, createdAt);
     }
 
-    // Constructeur de reconstitution complet (avec état de verrouillage)
-    public User(String id, String name, String email, String passwordHash, String refreshToken, Set<Group> groups, Set<Role> directRoles, int failedLoginAttempts, LocalDateTime lockedUntil, LocalDateTime createdAt){
+    // Constructeur de reconstitution complet (verrouillage + version optimiste)
+    public User(String id, String name, String email, String passwordHash, String refreshToken, Set<Group> groups, Set<Role> directRoles, int failedLoginAttempts, LocalDateTime lockedUntil, Long version, LocalDateTime createdAt){
         this.id = id;
         this.name = name;
         this.email = validateEmail(email);
@@ -55,6 +57,7 @@ public class User {
         this.directRoles = directRoles;
         this.failedLoginAttempts = failedLoginAttempts;
         this.lockedUntil = lockedUntil;
+        this.version = version;
         this.createdAt = createdAt;
     }
 

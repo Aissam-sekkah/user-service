@@ -220,7 +220,7 @@ public class UserDomainService implements UserUseCase {
         String email;
         try {
             email = tokenService.extractUsername(refreshToken);
-        } catch (IllegalArgumentException e) {
+        } catch (InvalidTokenException e) {
             log.warn("Refresh token JWT validation failed: {}", e.getMessage());
             auditLogger.logAuditEvent(AuditEventType.TOKEN_REFRESH_FAILURE, null, null, 
                     false, "JWT validation failed: " + e.getMessage());

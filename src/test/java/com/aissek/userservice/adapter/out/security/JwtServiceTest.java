@@ -68,7 +68,8 @@ class JwtServiceTest {
     @DisplayName("Should throw exception for malformed tokens")
     void shouldThrowExceptionForMalformedToken() {
         String malformedToken = "not.a.jwt.token";
-        
-        assertThrows(IllegalArgumentException.class, () -> jwtService.extractUsername(malformedToken));
+
+        assertThrows(com.aissek.userservice.domain.exception.InvalidTokenException.class,
+                () -> jwtService.extractUsername(malformedToken));
     }
 }

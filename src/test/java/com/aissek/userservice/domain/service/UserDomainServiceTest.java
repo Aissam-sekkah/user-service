@@ -69,7 +69,7 @@ class UserDomainServiceTest {
     @DisplayName("Should throw exception when refresh token is invalid")
     void shouldThrowExceptionWhenRefreshTokenInvalid() {
         String invalidToken = "invalid-token";
-        when(tokenService.extractUsername(invalidToken)).thenThrow(new IllegalArgumentException("Invalid JWT token"));
+        when(tokenService.extractUsername(invalidToken)).thenThrow(new com.aissek.userservice.domain.exception.InvalidTokenException("Invalid JWT token"));
 
         assertThrows(com.aissek.userservice.domain.exception.AuthenticationException.class, 
             () -> userDomainService.refreshAccessToken(invalidToken));
