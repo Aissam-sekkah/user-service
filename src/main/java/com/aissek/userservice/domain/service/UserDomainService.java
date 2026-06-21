@@ -142,6 +142,11 @@ public class UserDomainService implements UserUseCase {
     public User updateUser(String id, String name, String email, Set<Group> groups, Set<com.aissek.userservice.domain.model.Role> roles) {
         log.info("Updating profile for user ID: {}", id);
         User user = getUserById(id);
+        // Guard against changing to an email already owned by another user.
+        if (email != null && !email.equalsIgnoreCase(user.getEmail()) && userRepository.existByEmail(email)) {
+            log.warn("User update failed: email {} already in use", email);
+            throw new ConflictException("Email déjà utilisé : " + email);
+        }
         user.updateProfile(name, email, groups);
         if (roles != null) {
             user.assignDirectRoles(roles);

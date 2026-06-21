@@ -1,9 +1,12 @@
 package com.aissek.userservice.config;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * Audit Logging Configuration for security-relevant events.
@@ -38,29 +41,52 @@ public class AuditConfig {
     public static class AuditLogger {
 
         /**
-         * Logs security audit events asynchronously.
+         * Logs security audit events asynchronously on the dedicated audit executor.
          * Includes: timestamp, event type, user identifier, IP address, user agent.
          */
-        @Async
-        public void logAuditEvent(AuditEventType eventType, String userId, String email, 
+        @Async("auditExecutor")
+        public void logAuditEvent(AuditEventType eventType, String userId, String email,
                                   String ipAddress, String userAgent, boolean success, String details) {
-            
+
             String status = success ? "SUCCESS" : "FAILURE";
-            
-            log.info("AUDIT | Type={} | Status={} | UserId={} | Email={} | IP={} | Details={}",
-                    eventType, status, userId, email, ipAddress, details);
-            
+
+            log.info("AUDIT | Type={} | Status={} | UserId={} | Email={} | IP={} | UserAgent={} | Details={}",
+                    eventType, status, userId, email, ipAddress, userAgent, details);
+
             // In production, also send to external audit system:
             // auditEventPublisher.publish(eventType, userId, timestamp, ipAddress, etc.)
         }
 
         /**
-         * Simplified version without IP/user agent (for domain layer calls).
+         * Convenience overload for callers (e.g. the domain layer) that don't carry the
+         * HTTP context. The client IP / user-agent are resolved here, on the CALLING
+         * thread, before the async hop — request-scoped {@link RequestContextHolder}
+         * state is not propagated to the audit executor thread.
          */
-        @Async
-        public void logAuditEvent(AuditEventType eventType, String userId, String email, 
+        public void logAuditEvent(AuditEventType eventType, String userId, String email,
                                   boolean success, String details) {
-            logAuditEvent(eventType, userId, email, "unknown", "unknown", success, details);
+            logAuditEvent(eventType, userId, email, resolveClientIp(), resolveUserAgent(), success, details);
+        }
+
+        private static String resolveClientIp() {
+            HttpServletRequest request = currentRequest();
+            return request != null ? request.getRemoteAddr() : "unknown";
+        }
+
+        private static String resolveUserAgent() {
+            HttpServletRequest request = currentRequest();
+            if (request == null) {
+                return "unknown";
+            }
+            String ua = request.getHeader("User-Agent");
+            return ua != null ? ua : "unknown";
+        }
+
+        private static HttpServletRequest currentRequest() {
+            if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attrs) {
+                return attrs.getRequest();
+            }
+            return null;
         }
     }
 }
