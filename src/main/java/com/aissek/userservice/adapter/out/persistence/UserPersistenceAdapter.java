@@ -47,6 +47,12 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
     }
 
     @Override
+    public List<User> findAll(int page, int size) {
+        return jpaRepository.findAll(org.springframework.data.domain.PageRequest.of(page, size))
+                .stream().map(mapper::toDomaine).toList();
+    }
+
+    @Override
     public boolean existByEmail(String email) {
         return jpaRepository.existsByEmail(email);
     }

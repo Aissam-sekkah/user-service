@@ -138,6 +138,11 @@ public class UserDomainService implements UserUseCase {
     }
 
     @Override
+    public List<User> getAllUsers(int page, int size) {
+        return userRepository.findAll(page, size);
+    }
+
+    @Override
     @Transactional
     public User updateUser(String id, String name, String email, Set<Group> groups, Set<com.aissek.userservice.domain.model.Role> roles) {
         log.info("Updating profile for user ID: {}", id);
