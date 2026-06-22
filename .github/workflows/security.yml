@@ -43,9 +43,14 @@ jobs:
       - uses: github/codeql-action/analyze@v3
 
   # --- SCA (block PRs that introduce vulnerable dependencies) ----------------
+  # Requires the repo's Dependency Graph to be enabled
+  # (Settings -> Code security and analysis -> Dependency graph -> Enable).
+  # continue-on-error keeps the pipeline green until that one-time setting is on;
+  # once enabled, remove it so the job can actually block bad PRs.
   dependency-review:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/dependency-review-action@v4

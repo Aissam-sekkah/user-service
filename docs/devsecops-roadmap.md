@@ -24,6 +24,11 @@ The foundation: stop secrets leaking, scan our code and dependencies, fail PRs e
 - ✅ **SCA** — `dependency-review-action` blocks PRs adding HIGH-severity vulnerable deps;
   Dependabot (`.github/dependabot.yml`) opens weekly update PRs for Gradle + Actions.
 - 🔧 **Branch protection** — cannot be committed; set once in the GitHub UI (see below).
+- 🔧 **Dependency Graph** — required by `dependency-review` and Dependabot alerts.
+  Enable once: **Settings → Code security and analysis → Dependency graph → Enable**
+  (free, incl. private repos). Until then the `dependency-review` job is marked
+  `continue-on-error: true` so it can't fail the pipeline; remove that line once
+  the graph is enabled so the job actually blocks vulnerable-dependency PRs.
 
 ### 🔧 Branch protection — manual setup (do this once)
 GitHub → repo **Settings → Branches → Add rule** for `master`:
