@@ -1,5 +1,6 @@
 package com.aissek.userservice.adapter.out.security;
 
+import com.aissek.userservice.domain.exception.InvalidTokenException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -81,7 +82,7 @@ public class JwtService implements com.aissek.userservice.domain.port.out.TokenS
         try {
             final String extractedUsername = extractUsername(token);
             return (extractedUsername.equals(username) && !isTokenExpired(token));
-        } catch (IllegalArgumentException e) {
+        } catch (InvalidTokenException e) {
             // Token is invalid or expired
             return false;
         }
@@ -100,19 +101,19 @@ public class JwtService implements com.aissek.userservice.domain.port.out.TokenS
                     .getPayload();
         } catch (io.jsonwebtoken.ExpiredJwtException e) {
             log.warn("JWT token expired: {}", e.getMessage());
-            throw new IllegalArgumentException("JWT token has expired");
+            throw new InvalidTokenException("JWT token has expired");
         } catch (io.jsonwebtoken.UnsupportedJwtException e) {
             log.warn("JWT token unsupported: {}", e.getMessage());
-            throw new IllegalArgumentException("JWT token is unsupported");
+            throw new InvalidTokenException("JWT token is unsupported");
         } catch (io.jsonwebtoken.MalformedJwtException e) {
             log.warn("JWT token malformed: {}", e.getMessage());
-            throw new IllegalArgumentException("JWT token is malformed");
+            throw new InvalidTokenException("JWT token is malformed");
         } catch (JwtException e) {
             log.error("JWT token validation failed: {}", e.getMessage());
-            throw new IllegalArgumentException("Invalid JWT token");
+            throw new InvalidTokenException("Invalid JWT token");
         } catch (Exception e) {
             log.error("Unexpected error during JWT validation: {}", e.getMessage());
-            throw new IllegalArgumentException("Invalid JWT token");
+            throw new InvalidTokenException("Invalid JWT token");
         }
     }
 }

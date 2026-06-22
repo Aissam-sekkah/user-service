@@ -47,7 +47,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         
         try {
             userEmail = jwtService.extractUsername(jwt);
-        } catch (IllegalArgumentException e) {
+        } catch (com.aissek.userservice.domain.exception.InvalidTokenException e) {
             log.warn("JWT validation failed: {}", e.getMessage());
             // We don't throw exception here; we let the request proceed without authentication.
             // The SecurityConfig authorization rules will then trigger the AuthenticationEntryPoint.

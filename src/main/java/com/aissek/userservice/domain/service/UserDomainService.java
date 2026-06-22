@@ -15,6 +15,7 @@ import com.aissek.userservice.config.AuditConfig.AuditLogger;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -27,6 +28,11 @@ import java.util.Set;
 @Slf4j
 @Transactional(readOnly = true)
 public class UserDomainService implements UserUseCase {
+
+    /** Consecutive failed logins before the account is temporarily locked. */
+    private static final int MAX_FAILED_ATTEMPTS = 5;
+    /** How long the account stays locked once the threshold is reached. */
+    private static final Duration LOCK_DURATION = Duration.ofMinutes(15);
 
     private final UserRepositoryPort userRepository;
     private final PasswordHasherPort passwordHasher;
@@ -75,6 +81,7 @@ public class UserDomainService implements UserUseCase {
     }
 
     @Override
+    @Transactional
     public User login(String email, String password) {
         log.info("Authentication attempt for email: {}", email);
         User user;
@@ -82,26 +89,44 @@ public class UserDomainService implements UserUseCase {
             user = userRepository.findByEmail(email)
                     .orElseThrow(() -> {
                         log.warn("Authentication failed: email {} not found", email);
-                        auditLogger.logAuditEvent(AuditEventType.LOGIN_FAILURE, null, email, 
+                        auditLogger.logAuditEvent(AuditEventType.LOGIN_FAILURE, null, email,
                                 false, "User not found");
                         return new AuthenticationException("Email ou mot de passe invalide");
                     });
 
+            // Reject locked accounts before checking the password (no enumeration: generic message).
+            if (user.isLocked()) {
+                log.warn("Authentication blocked: account locked for email {}", email);
+                auditLogger.logAuditEvent(AuditEventType.ACCOUNT_LOCKED, user.getId(), email,
+                        false, "Login attempt on locked account");
+                throw new AuthenticationException("Compte temporairement verrouillé. Réessayez plus tard.");
+            }
+
             if (!passwordHasher.matches(password, user.getPasswordHash())) {
-                log.warn("Authentication failed: invalid password for email {}", email);
-                auditLogger.logAuditEvent(AuditEventType.LOGIN_FAILURE, user.getId(), email, 
-                        false, "Invalid password");
+                user.recordFailedLogin(MAX_FAILED_ATTEMPTS, LOCK_DURATION);
+                userRepository.save(user);
+                log.warn("Authentication failed: invalid password for email {} (attempt {})",
+                        email, user.getFailedLoginAttempts());
+                AuditEventType event = user.isLocked() ? AuditEventType.ACCOUNT_LOCKED : AuditEventType.LOGIN_FAILURE;
+                auditLogger.logAuditEvent(event, user.getId(), email,
+                        false, "Invalid password (failed attempts: " + user.getFailedLoginAttempts() + ")");
                 throw new AuthenticationException("Email ou mot de passe invalide");
             }
 
+            // Successful login clears any accumulated failures.
+            if (user.getFailedLoginAttempts() > 0 || user.getLockedUntil() != null) {
+                user.resetFailedLogins();
+                userRepository.save(user);
+            }
+
             log.info("User authenticated successfully: ID {}", user.getId());
-            auditLogger.logAuditEvent(AuditEventType.LOGIN_SUCCESS, user.getId(), email, 
+            auditLogger.logAuditEvent(AuditEventType.LOGIN_SUCCESS, user.getId(), email,
                     true, "Successful login");
             return user;
         } catch (AuthenticationException e) {
             throw e;
         } catch (Exception e) {
-            auditLogger.logAuditEvent(AuditEventType.LOGIN_FAILURE, null, email, 
+            auditLogger.logAuditEvent(AuditEventType.LOGIN_FAILURE, null, email,
                     false, "Unexpected error: " + e.getMessage());
             throw e;
         }
@@ -113,10 +138,20 @@ public class UserDomainService implements UserUseCase {
     }
 
     @Override
+    public List<User> getAllUsers(int page, int size) {
+        return userRepository.findAll(page, size);
+    }
+
+    @Override
     @Transactional
     public User updateUser(String id, String name, String email, Set<Group> groups, Set<com.aissek.userservice.domain.model.Role> roles) {
         log.info("Updating profile for user ID: {}", id);
         User user = getUserById(id);
+        // Guard against changing to an email already owned by another user.
+        if (email != null && !email.equalsIgnoreCase(user.getEmail()) && userRepository.existByEmail(email)) {
+            log.warn("User update failed: email {} already in use", email);
+            throw new ConflictException("Email déjà utilisé : " + email);
+        }
         user.updateProfile(name, email, groups);
         if (roles != null) {
             user.assignDirectRoles(roles);
@@ -161,8 +196,19 @@ public class UserDomainService implements UserUseCase {
     @Transactional
     public void updateRefreshToken(String id, String refreshToken) {
         User user = getUserById(id);
-        user.updateRefreshToken(passwordHasher.hash(refreshToken));
+        user.updateRefreshToken(TokenHasher.sha256(refreshToken));
         userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void logout(String id) {
+        User user = getUserById(id);
+        user.updateRefreshToken(null);
+        userRepository.save(user);
+        log.info("User logged out: ID {}", id);
+        auditLogger.logAuditEvent(AuditEventType.LOGOUT, user.getId(), user.getEmail(),
+                true, "User logged out; refresh token revoked");
     }
 
     @Override
@@ -174,7 +220,7 @@ public class UserDomainService implements UserUseCase {
         String email;
         try {
             email = tokenService.extractUsername(refreshToken);
-        } catch (IllegalArgumentException e) {
+        } catch (InvalidTokenException e) {
             log.warn("Refresh token JWT validation failed: {}", e.getMessage());
             auditLogger.logAuditEvent(AuditEventType.TOKEN_REFRESH_FAILURE, null, null, 
                     false, "JWT validation failed: " + e.getMessage());
@@ -199,7 +245,7 @@ public class UserDomainService implements UserUseCase {
                     return new AuthenticationException("Invalid or expired refresh token");
                 });
         
-        if (!passwordHasher.matches(refreshToken, user.getRefreshToken())) {
+        if (!TokenHasher.matches(refreshToken, user.getRefreshToken())) {
             log.warn("Refresh token hash mismatch for user: {}", email);
             auditLogger.logAuditEvent(AuditEventType.TOKEN_REFRESH_FAILURE, user.getId(), email, 
                     false, "Token hash mismatch");

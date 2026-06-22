@@ -4,7 +4,9 @@ import com.aissek.userservice.adapter.in.web.dto.CreateUserRequest;
 import com.aissek.userservice.adapter.in.web.dto.LoginRequest;
 import com.aissek.userservice.adapter.in.web.dto.TokenResponse;
 import com.aissek.userservice.adapter.in.web.dto.RefreshRequest;
+import com.aissek.userservice.adapter.out.security.UserSecurityDetails;
 import com.aissek.userservice.domain.model.Role;
+import com.aissek.userservice.domain.port.in.RoleUseCase;
 import com.aissek.userservice.domain.port.in.UserUseCase;
 import com.aissek.userservice.domain.port.out.TokenServicePort;
 import jakarta.validation.Valid;
@@ -13,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Set;
@@ -27,6 +30,7 @@ import java.util.Set;
 public class AuthController {
 
     private final UserUseCase userUseCase;
+    private final RoleUseCase roleUseCase;
     private final TokenServicePort jwtService;
 
     @Value("${application.security.jwt.expiration:3600000}")
@@ -44,9 +48,10 @@ public class AuthController {
         log.info("Public registration attempt for email: {}", request.email());
         
         // SECURITY GUARD: Public registrants cannot pick their own roles.
-        Set<Role> defaultRoles = Set.of(new Role("ROLE_USER", "ROLE_USER", "Standard User Role"));
-        
-        userUseCase.createUser(request.name(), request.email(), request.password(), null, defaultRoles);
+        // Fetch the canonical seeded role rather than fabricating a detached literal.
+        Role defaultRole = roleUseCase.getRoleById("ROLE_USER");
+
+        userUseCase.createUser(request.name(), request.email(), request.password(), null, Set.of(defaultRole));
         
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
@@ -89,11 +94,26 @@ public class AuthController {
         
         log.info("Token refresh successful for user: {}", user.getEmail());
         return ResponseEntity.ok(new TokenResponse(
-                newAccessToken, 
-                newRefreshToken, 
-                "Bearer", 
+                newAccessToken,
+                newRefreshToken,
+                "Bearer",
                 accessTokenExpiration,
                 refreshTokenExpiration
         ));
+    }
+
+    /**
+     * Revokes the caller's refresh token (server-side logout).
+     * Requires a valid access token; the JWT filter populates the principal even
+     * on this permit-all path.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@AuthenticationPrincipal UserSecurityDetails principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        log.info("Logout request for user: {}", principal.getUsername());
+        userUseCase.logout(principal.getUser().getId());
+        return ResponseEntity.noContent().build();
     }
 }

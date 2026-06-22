@@ -40,11 +40,11 @@ class UserDomainServiceTest {
     void shouldUpdateRefreshToken() {
         User user = new User("John", "john@example.com", "hash", Set.of());
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-        when(passwordHasher.hash("new-refresh-token")).thenReturn("hashed-token");
 
         userDomainService.updateRefreshToken(user.getId(), "new-refresh-token");
 
-        assertEquals("hashed-token", user.getRefreshToken());
+        // Refresh tokens are stored as SHA-256 hashes (not bcrypt).
+        assertEquals(TokenHasher.sha256("new-refresh-token"), user.getRefreshToken());
         verify(userRepository, times(1)).save(user);
     }
 
@@ -52,13 +52,12 @@ class UserDomainServiceTest {
     @DisplayName("Should return user when valid refresh token is provided")
     void shouldRefreshAccessTokenSuccess() {
         User user = new User("John", "john@example.com", "hash", Set.of());
-        user.updateRefreshToken("hashed-token"); // Simulate hashed token in DB
         String token = "valid-token";
-        
+        user.updateRefreshToken(TokenHasher.sha256(token)); // Simulate stored SHA-256 hash
+
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
         when(tokenService.extractUsername(token)).thenReturn(user.getEmail());
         when(tokenService.isTokenValid(token, user.getEmail())).thenReturn(true);
-        when(passwordHasher.matches(token, "hashed-token")).thenReturn(true);
 
         User result = userDomainService.refreshAccessToken(token);
 
@@ -70,7 +69,7 @@ class UserDomainServiceTest {
     @DisplayName("Should throw exception when refresh token is invalid")
     void shouldThrowExceptionWhenRefreshTokenInvalid() {
         String invalidToken = "invalid-token";
-        when(tokenService.extractUsername(invalidToken)).thenThrow(new IllegalArgumentException("Invalid JWT token"));
+        when(tokenService.extractUsername(invalidToken)).thenThrow(new com.aissek.userservice.domain.exception.InvalidTokenException("Invalid JWT token"));
 
         assertThrows(com.aissek.userservice.domain.exception.AuthenticationException.class, 
             () -> userDomainService.refreshAccessToken(invalidToken));
@@ -85,6 +84,50 @@ class UserDomainServiceTest {
 
         assertThrows(com.aissek.userservice.domain.exception.AuthenticationException.class, 
             () -> userDomainService.refreshAccessToken(expiredToken));
+    }
+
+    @Test
+    @DisplayName("Should lock account after 5 consecutive failed logins")
+    void shouldLockAccountAfterMaxFailedAttempts() {
+        User user = new User("John", "john@example.com", "hash", Set.of());
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        when(passwordHasher.matches("wrong", "hash")).thenReturn(false);
+
+        for (int i = 0; i < 5; i++) {
+            assertThrows(com.aissek.userservice.domain.exception.AuthenticationException.class,
+                    () -> userDomainService.login(user.getEmail(), "wrong"));
+        }
+
+        assertTrue(user.isLocked());
+        assertEquals(5, user.getFailedLoginAttempts());
+        verify(userRepository, times(5)).save(user);
+    }
+
+    @Test
+    @DisplayName("Should reject login while account is locked, even with correct password")
+    void shouldRejectLoginWhenAccountLocked() {
+        User user = new User("John", "john@example.com", "hash", Set.of());
+        user.recordFailedLogin(1, java.time.Duration.ofMinutes(15)); // force lock
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+
+        assertThrows(com.aissek.userservice.domain.exception.AuthenticationException.class,
+                () -> userDomainService.login(user.getEmail(), "hash"));
+        // Password never checked when locked.
+        verify(passwordHasher, never()).matches(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("Should reset failed attempts on successful login")
+    void shouldResetFailedAttemptsOnSuccess() {
+        User user = new User("John", "john@example.com", "hash", Set.of());
+        user.recordFailedLogin(10, java.time.Duration.ofMinutes(15)); // 1 failure, not locked
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        when(passwordHasher.matches("hash", "hash")).thenReturn(true);
+
+        userDomainService.login(user.getEmail(), "hash");
+
+        assertEquals(0, user.getFailedLoginAttempts());
+        assertFalse(user.isLocked());
     }
 
     @Test

@@ -17,10 +17,12 @@ public interface UserUseCase {
     User        getUserById(String id);
     User        login(String email, String password);
     List<User>  getAllUsers();
+    List<User>  getAllUsers(int page, int size);
     User        updateUser(String id, String name, String email, Set<Group> groups, Set<Role> roles);
     void        changePassword(String id, String currentPassword, String newPassword);
     void        deleteUser(String id);
     void        updateRefreshToken(String id, String refreshToken);
     User        refreshAccessToken(String refreshToken);
+    void        logout(String id);
 
 }

@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # Gradle dependencies (Spring Boot, jjwt, guava, postgres driver, ...)
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - security
+
+  # Keep the GitHub Actions themselves up to date / unpinned-vuln free
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels:
+      - ci

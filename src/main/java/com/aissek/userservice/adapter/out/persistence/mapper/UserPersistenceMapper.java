@@ -24,6 +24,9 @@ public class UserPersistenceMapper {
         entity.setEmail(user.getEmail());
         entity.setPasswordHash(user.getPasswordHash());
         entity.setRefreshToken(user.getRefreshToken());
+        entity.setFailedLoginAttempts(user.getFailedLoginAttempts());
+        entity.setLockedUntil(user.getLockedUntil());
+        entity.setVersion(user.getVersion());
         entity.setGroups(user.getGroups().stream().map(this::mapGroupToEntity).collect(Collectors.toSet()));
         entity.setDirectRoles(user.getDirectRoles().stream().map(roleMapper::toEntity).collect(Collectors.toSet()));
         entity.setCreatedAt(user.getCreatedAt());
@@ -40,6 +43,9 @@ public class UserPersistenceMapper {
                 userEntity.getRefreshToken(),
                 userEntity.getGroups().stream().map(this::mapGroupToDomaine).collect(Collectors.toSet()),
                 userEntity.getDirectRoles().stream().map(roleMapper::toDomain).collect(Collectors.toSet()),
+                userEntity.getFailedLoginAttempts(),
+                userEntity.getLockedUntil(),
+                userEntity.getVersion(),
                 userEntity.getCreatedAt()
         );
 

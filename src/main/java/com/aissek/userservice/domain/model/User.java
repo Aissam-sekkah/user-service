@@ -3,6 +3,7 @@ package com.aissek.userservice.domain.model;
 import com.aissek.userservice.domain.service.EmailValidator;
 import lombok.Getter;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -19,6 +20,9 @@ public class User {
     private String refreshToken;
     private Set<Group> groups;
     private Set<Role> directRoles;
+    private int failedLoginAttempts;
+    private LocalDateTime lockedUntil;
+    private final Long version; // JPA optimistic-locking version; null for not-yet-persisted users
     private final LocalDateTime createdAt;
 
 
@@ -32,10 +36,18 @@ public class User {
         this.groups = (groups != null) ? groups : new HashSet<>();
         this.directRoles = new HashSet<>();
         this.passwordHash = validatePasswordHash(passwordHash);
+        this.failedLoginAttempts = 0;
+        this.lockedUntil = null;
+        this.version = null;
     }
 
     // Constructeur de reconstitution depuis la bdd
     public User(String id, String name, String email, String passwordHash, String refreshToken, Set<Group> groups, Set<Role> directRoles, LocalDateTime createdAt){
+        this(id, name, email, passwordHash, refreshToken, groups, directRoles, 0, null, null, createdAt);
+    }
+
+    // Constructeur de reconstitution complet (verrouillage + version optimiste)
+    public User(String id, String name, String email, String passwordHash, String refreshToken, Set<Group> groups, Set<Role> directRoles, int failedLoginAttempts, LocalDateTime lockedUntil, Long version, LocalDateTime createdAt){
         this.id = id;
         this.name = name;
         this.email = validateEmail(email);
@@ -43,6 +55,9 @@ public class User {
         this.refreshToken = refreshToken;
         this.groups = groups;
         this.directRoles = directRoles;
+        this.failedLoginAttempts = failedLoginAttempts;
+        this.lockedUntil = lockedUntil;
+        this.version = version;
         this.createdAt = createdAt;
     }
 
@@ -85,6 +100,32 @@ public class User {
 
     public void updateRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
+    }
+
+    /**
+     * @return true while the account is temporarily locked out from authenticating.
+     */
+    public boolean isLocked() {
+        return lockedUntil != null && lockedUntil.isAfter(LocalDateTime.now());
+    }
+
+    /**
+     * Records a failed authentication attempt; locks the account for {@code lockDuration}
+     * once {@code maxAttempts} consecutive failures are reached.
+     */
+    public void recordFailedLogin(int maxAttempts, Duration lockDuration) {
+        this.failedLoginAttempts++;
+        if (this.failedLoginAttempts >= maxAttempts) {
+            this.lockedUntil = LocalDateTime.now().plus(lockDuration);
+        }
+    }
+
+    /**
+     * Clears the failed-attempt counter and any active lock (call on successful login).
+     */
+    public void resetFailedLogins() {
+        this.failedLoginAttempts = 0;
+        this.lockedUntil = null;
     }
 
     private String validateEmail(String email) {

@@ -32,19 +32,25 @@ public class GlobalExceptionHandler {
                 .body(ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, exception.getMessage()));
     }
 
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ProblemDetail> handleAuthentication(AuthenticationException exception) {
+    @ExceptionHandler({AuthenticationException.class, InvalidTokenException.class})
+    public ResponseEntity<ProblemDetail> handleAuthentication(RuntimeException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException exception) {
-        // If it's a JWT error, return 401, otherwise return 400 (message may be null)
-        String message = String.valueOf(exception.getMessage());
-        HttpStatus status = message.contains("JWT") ? HttpStatus.UNAUTHORIZED : HttpStatus.BAD_REQUEST;
-        return ResponseEntity.status(status)
-                .body(ProblemDetail.forStatusAndDetail(status, exception.getMessage()));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage()));
+    }
+
+    // Concurrent modification detected via @Version optimistic locking.
+    @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ProblemDetail> handleOptimisticLock(
+            org.springframework.orm.ObjectOptimisticLockingFailureException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
+                        "The resource was modified concurrently. Please retry."));
     }
 
     // Covers Spring Security's AuthorizationDeniedException (@PreAuthorize) which extends this.

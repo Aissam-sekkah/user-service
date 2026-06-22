@@ -80,14 +80,18 @@ public class UserController {
     }
 
     /**
-     *
-     * @return
+     * GET /api/v1/users?page=0&size=20
+     * Paginated list of users. {@code size} is clamped to [1, 100] to bound the response.
      */
     @GetMapping
     @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<List<UserResponse>> getAll(){
-        var allUsers = userUseCase.getAllUsers();
-        return ResponseEntity.status(HttpStatus.OK).body(allUsers.stream().map(mapper::toResponse).toList());
+    public ResponseEntity<List<UserResponse>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size){
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 100);
+        var users = userUseCase.getAllUsers(safePage, safeSize);
+        return ResponseEntity.status(HttpStatus.OK).body(users.stream().map(mapper::toResponse).toList());
     }
 
     /**

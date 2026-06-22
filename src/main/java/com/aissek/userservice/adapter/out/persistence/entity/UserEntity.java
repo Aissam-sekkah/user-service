@@ -43,6 +43,14 @@ public class UserEntity {
     @Column(name = "refresh_token")
     private String refreshToken;
 
+    @Setter
+    @Column(name = "failed_login_attempts", nullable = false)
+    private int failedLoginAttempts;
+
+    @Setter
+    @Column(name = "lock_until")
+    private LocalDateTime lockedUntil;
+
     @ManyToMany
     @JoinTable(
             name = "user_groups",
@@ -61,5 +69,9 @@ public class UserEntity {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
 }
