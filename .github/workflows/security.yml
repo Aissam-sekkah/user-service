@@ -13,6 +13,8 @@ jobs:
   # the past. fetch-depth: 0 scans the full history, not just the latest diff.
   secret-scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,6 +52,8 @@ jobs:
   dependency-review:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
