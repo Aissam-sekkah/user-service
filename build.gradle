@@ -49,7 +49,7 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-engine'
     testImplementation 'org.mockito:mockito-core'
     // BOM pour gérer les versions de Testcontainers de manière cohérente
-    testImplementation platform('org.testcontainers:testcontainers-bom:1.19.7')
+    testImplementation platform('org.testcontainers:testcontainers-bom:2.0.5')
 
     // Core de Testcontainers + Intégration JUnit 5
     testImplementation 'org.testcontainers:testcontainers'
