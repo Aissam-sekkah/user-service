@@ -55,14 +55,23 @@ GitHub → repo **Settings → Branches → Add rule** for `master`:
 
 ---
 
-## ⬜ Step 2 — Supply chain & container
+## ✅ Step 2 — Supply chain & container (DONE)
 
-Once Step 1 is green:
-- ⬜ **SBOM** — add the CycloneDX Gradle plugin; publish `build/reports/bom.json` as a
-  build artifact and attach it to the image, so CVE exposure is answerable instantly.
-- ⬜ **Image scan** — Trivy on the built Docker image (`HIGH,CRITICAL`), upload SARIF.
-- ⬜ **Dockerfile hardening** — non-root user, pinned distroless/jammy base image,
-  no secrets baked into layers, healthcheck.
+- ✅ **SBOM** — CycloneDX Gradle plugin (`org.cyclonedx.bom` 2.3.1) →
+  `build/reports/bom.json` (`./gradlew cyclonedxBom`); `security.yml` `sbom` job
+  uploads it as a build artifact.
+- ✅ **Image scan** — `security.yml` `image-scan` job builds the image and runs Trivy
+  (`HIGH,CRITICAL`), uploads SARIF as an artifact + to code scanning (best-effort).
+  Currently **report-only** (`exit-code: '0'`) — raise to `'1'` to enforce.
+- ✅ **Dockerfile hardening** — `.dockerignore` keeps `.env`/`data/` out of the build
+  context; jar copied as non-root (`--chown`); `HEALTHCHECK` on `/actuator/health`;
+  container-aware heap (`MaxRAMPercentage`); layered copy for dependency caching;
+  plain jar disabled so the `*.jar` glob is unambiguous.
+
+### Tighten later (when ready)
+- ⬜ Pin base images by **digest** (`@sha256:...`) instead of tags for reproducibility.
+- ⬜ Flip Trivy `exit-code` to `'1'` (and/or `ignore-unfixed: true`) to block on CVEs.
+- ⬜ Consider a **distroless** runtime base to shrink the attack surface further.
 
 ## ⬜ Step 3 — Secrets & provenance
 
