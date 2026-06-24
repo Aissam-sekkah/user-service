@@ -1,0 +1,31 @@
+# Keep secrets and local state out of the build context / image layers.
+.env
+.env.*
+data/
+*.log
+
+# VCS & CI
+.git
+.github
+.gitignore
+.gitattributes
+
+# Build output & caches (the image builds the jar itself)
+build/
+.gradle/
+
+# IDE / editor
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Docs & local helpers not needed at build time
+*.md
+docs/
+front.html
+test.bash
+prometheus.yml
+docker-compose.yml

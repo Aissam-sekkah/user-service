@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.3.5'
     id 'io.spring.dependency-management' version '1.1.6'
+    id 'org.cyclonedx.bom' version '2.3.1'
 }
 
 group = 'com.aissek'
@@ -65,4 +66,18 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// Only the executable bootJar is needed; disabling the plain jar keeps the
+// Docker COPY *.jar glob unambiguous.
+tasks.named('jar') {
+    enabled = false
+}
+
+// CycloneDX SBOM -> build/reports/bom.json (run: ./gradlew cyclonedxBom)
+cyclonedxBom {
+    outputName = 'bom'
+    outputFormat = 'json'
+    includeBomSerialNumber = true
+    projectType = 'application'
 }
