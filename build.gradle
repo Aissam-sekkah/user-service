@@ -28,7 +28,7 @@ dependencies {
     implementation 'org.springframework.security:spring-security-crypto'
     
     // Rate Limiting
-    implementation 'com.google.guava:guava:33.0.0-jre'
+    implementation 'com.google.guava:guava:33.7.1-jre'
     
     // JWT Library
     implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
